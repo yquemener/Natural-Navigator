@@ -350,30 +350,6 @@ void MainWindow::on_lst_boxes_currentRowChanged(int currentRow)
 
 }
 
-void MainWindow::on_sld_z_blob_sliderMoved(int position)
-{
-	float v = normalized_slider(ui->sld_z_blob);
-	v=v*256;
-	ui->lbl_z_blob->setText(QString("Blob Z : ") + QString::number(v));
-	m_settings->setValue("calib_near_z", ui->sld_z_near->value());
-	m_z_far=ui->sld_z_blob->value();
-}
-
-void MainWindow::on_sld_top_zone_sliderMoved(int position)
-{
-	m_pSharedData->boxes[2].Y2 = position;
-}
-
-void MainWindow::on_sld_left_zone_sliderMoved(int position)
-{
-	m_pSharedData->boxes[0].X2 = position;
-}
-
-void MainWindow::on_sld_right_zone_sliderMoved(int position)
-{
-	m_pSharedData->boxes[1].X1 = position;
-}
-
 void MainWindow::on_but_deactivate_display_clicked()
 {
 

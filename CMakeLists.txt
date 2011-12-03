@@ -17,9 +17,8 @@ include_directories (../OpenKinect-libfreenect-3b0f416/include/)
 include_directories (/opt/local/var/macports/software/libusb-devel/1.0.8.20101017_1/opt/local/include/) 
 
 INCLUDE_DIRECTORIES  (
-	${CMAKE_CURRENT_SOURCE_DIR}/qtbuild
-	${CMAKE_CURRENT_SOURCE_DIR}/build
-	)
+        ${CMAKE_CURRENT_SOURCE_DIR}/../qtcreator-build/
+        )
 
 SET (NaturalNavigator_src
 	main.cpp

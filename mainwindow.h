@@ -43,10 +43,6 @@ private slots:
  void on_sld_depth_boxes_sliderMoved(int position);
  void on_sld_depth_boxes_actionTriggered(int action);
  void on_but_deactivate_display_clicked();
- void on_sld_right_zone_sliderMoved(int position);
- void on_sld_left_zone_sliderMoved(int position);
- void on_sld_top_zone_sliderMoved(int position);
- void on_sld_z_blob_sliderMoved(int position);
  void on_lst_boxes_currentRowChanged(int currentRow);
  void on_pushButton_clicked();
  void on_sld_z_near_sliderMoved(int position);
