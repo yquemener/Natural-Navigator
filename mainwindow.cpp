@@ -23,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
 	m_udpSocket = new QUdpSocket(this);
-	m_udpSocket->bind(QHostAddress("127.0.01"), 7475);
+  m_udpSocket->bind(QHostAddress("127.0.0.1"), 7475);
 
 
 	// initialize the shared scene
@@ -144,8 +144,9 @@ void MainWindow::on_refreshVideo()
 	m_gl.m_proc.process_boxes();
 
 
-	//blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
-	blob b;
+  //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
+  blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 0,640,0,480);
+  //blob b;
 	QString s = QString("Biggest blob :\n")+
 							"CX :"+QString::number(b.cx)+"\n"+
 							"CY :"+QString::number(b.cy)+"\n"+
@@ -172,8 +173,9 @@ void MainWindow::on_refreshVideo()
 	{
 		m_gl.loadVideoTexture(m_gl.m_proc.get_data().rgb_data);
 		m_gl.loadDebugTexture(m_gl.m_proc.get_data().dbg_data);
-		m_gl.loadDepthTexture(m_gl.m_proc.get_data().depth_data);
-		m_gl.repaint();
+    //m_gl.loadDepthTexture(m_gl.m_proc.get_data().depth_data);
+    m_gl.loadDepthTexture(m_gl.m_proc.get_data().background_depth);
+    m_gl.repaint();
 	}
 
 	// Test states for space invader commands generation
@@ -396,4 +398,9 @@ void MainWindow::on_sld_right_margin_valueChanged(int value)
 void MainWindow::on_sld_left_margin_valueChanged(int value)
 {
 		m_pSharedData->boxes[0].X1 = value;
+}
+
+void MainWindow::on_but_background_depth_clicked()
+{
+  m_gl.m_proc.set_background_depth(m_z_near);
 }

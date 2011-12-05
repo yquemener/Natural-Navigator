@@ -57,6 +57,7 @@ private slots:
 	void on_refreshVideo();
 	void on_calib_changed();
 	void send_max_command(QString msg);
+  void on_but_background_depth_clicked();
 };
 
 

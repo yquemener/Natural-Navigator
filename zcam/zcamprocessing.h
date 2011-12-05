@@ -34,6 +34,7 @@ typedef struct
 	int rgb_height;
 
 	unsigned char		*	dbg_data;
+  short * background_depth;
 } raw_data;
 
 typedef struct {
@@ -51,6 +52,7 @@ class ZCamProcessing
 {
 private:
 	raw_data						m_out_data;
+  short             * m_background_depth;
 	float								m_offset_x, m_offset_y;
 	float								m_scale_x, m_scale_y;
 	SharedStruct::scene	*	m_shared_scene;
@@ -64,7 +66,7 @@ private:
 	float								m_grid_elem_height;
 
 public:
-		ZCamProcessing();
+    ZCamProcessing();
 
 		void update();
 
@@ -77,6 +79,7 @@ public:
 														const float x1, const float x2,
 														const float y1, const float y2);
 		void set_shared_data(SharedStruct::scene * sd) { m_shared_scene = sd; }
+    void set_background_depth(float);
 
 		float m_grab_threshold;
 };

@@ -61,6 +61,9 @@ ZCamProcessing::ZCamProcessing()
 
 	m_grab_threshold = 0.1;
 
+  m_background_depth = 0;
+  m_out_data.background_depth=m_background_depth;
+  static const char cpyrightrot13[] = "(P) 2011 Lirf Dhrzrare";
 	static const char cpyright[] = "Virtopia interface\n(C) 2011 Yves Quemener\n";
 }
 
@@ -92,6 +95,11 @@ void ZCamProcessing::update()
 	{
 		int v;
 		v=m_out_data.depth_data[i];
+    if//((m_background_depth)&&(m_background_depth[i]!=0))
+      ((m_background_depth)&&(v>=m_background_depth[i]))
+    {
+      v=0;
+    }
 		v=v*v*v;
 
 //		if((v/4000000.0<m_z_far)&&
@@ -104,7 +112,7 @@ void ZCamProcessing::update()
 			m_out_data.dots_3d[i*3+2] = v/4000000.0;
 		}
 		else
-		{
+    {
 			m_out_data.dots_3d[i*3] = 0;
 			m_out_data.dots_3d[i*3+1] = 0;
 			m_out_data.dots_3d[i*3+2] = 0;
@@ -374,4 +382,47 @@ blob ZCamProcessing::process_grab_area(const float z_near, const float z_far,
 		return results[i_max];
 	/*if(results[i_max].area==0) return 0;
 	return (float)(results[i_max].perimeter)/sqrt(results[i_max].area);*/
+}
+
+void ZCamProcessing::set_background_depth(float zdebug)
+{
+  const float MULTIPLY_FACTOR = 0.9f;
+  int i;
+
+  if(m_background_depth==0)
+  {
+    m_background_depth = new short[sizeof(short)*640*480];
+    m_out_data.background_depth = m_background_depth;
+  }
+  memcpy(m_background_depth, m_out_data.depth_data, sizeof(short)*640*480);
+  i=1;
+  int firsti=0;
+  while(i<640*480)
+  {
+    if(m_background_depth[i]>1024)
+    {
+      printf("zero\n");
+      while((i<640*480-1)&&(m_background_depth[i]>1024))
+      {
+        i++;
+      }
+      int j;
+      short v = min(m_background_depth[i], m_background_depth[firsti]);
+      for(j=firsti;j<i;j++)
+      {
+        m_background_depth[j]=v;
+      }
+      printf("%d %d\t",firsti,i);
+      firsti=i;
+    }
+    else
+    {
+      firsti=i;
+    }
+    i++;
+  }
+  for(i=0;i<640*480;i++)
+  {
+    m_background_depth[i]*=MULTIPLY_FACTOR;
+  }
 }

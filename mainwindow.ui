@@ -74,7 +74,7 @@
        <string notr="true">background-color: rgb(214, 229, 205);</string>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_display">
        <attribute name="title">
@@ -358,6 +358,13 @@
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="but_background_depth">
+          <property name="text">
+           <string>Set Background depth</string>
           </property>
          </widget>
         </item>
