@@ -25,7 +25,9 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    ZCamProcessing m_proc;
 		GLWidget m_gl;
+    GLWidget m_gl_top_view;
 		QTimer m_clock;
 		QSettings * m_settings;
 		QUdpSocket * m_udpSocket;

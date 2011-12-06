@@ -30,7 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	m_pSharedData = new SharedStruct::scene();
 
     ui->setupUi(this);
-		ui->layoutForOpenGL->addWidget(&this->m_gl);
+    ui->layoutForOpenGL->addWidget(&this->m_gl);
+    ui->layoutForOpenGL->addWidget(&this->m_gl_top_view);
 		connect(&m_clock, SIGNAL(timeout()), this, SLOT(on_refreshVideo()));
 		connect(ui->sld_offset_x, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
 		connect(ui->sld_offset_y, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
@@ -40,11 +41,11 @@ MainWindow::MainWindow(QWidget *parent) :
 		connect(ui->sld_z_near, SIGNAL(valueChanged(int)), this, SLOT(on_sld_z_near_valueChanged(int)));
 		connect(ui->sld_grab_threshold, SIGNAL(valueChanged(int)), this, SLOT(on_grab_threshold_valueChanged(int)));
 		//connect(m_gl, SIGNAL(mouse))
-		m_clock.start(66.3);
+    m_clock.start(10.2);
 
 		// Load settings
 
-		m_settings = new QSettings("IV-devs", "Virtopia");
+		m_settings = new QSettings("IV-devs", "NaturalNavigator");
 		ui->sld_offset_x->setValue(m_settings->value("calib_offset_x").toInt());
 		ui->sld_offset_y->setValue(m_settings->value("calib_offset_y").toInt());
 		ui->sld_scale_x->setValue(m_settings->value("calib_scale_x").toInt());
@@ -62,6 +63,7 @@ MainWindow::MainWindow(QWidget *parent) :
 			float width = m_settings->value("width").toFloat();
 			float height = m_settings->value("height").toFloat();
 			float depth = m_settings->value("depth").toFloat();
+      int behav = m_settings->value("behavior").toInt();
 			SharedStruct::box b;
 			b.X1=x;
 			b.Y1=y;
@@ -69,6 +71,10 @@ MainWindow::MainWindow(QWidget *parent) :
 			b.X2=x+width;
 			b.Y2=y+height;
 			b.Z2=z+depth;
+      b.behavior = SharedStruct::behavior_t(behav);
+      b.state = 0;
+      b.last_state = 0;
+      //b.behavior = SharedStruct::HORIZONTAL_SLIDER;
 			m_pSharedData->boxes.push_back(b);
 			ui->lst_boxes->addItem(QString("Box : (")	+
 														 QString::number(x)+","+
@@ -78,13 +84,20 @@ MainWindow::MainWindow(QWidget *parent) :
 														 QString::number(height)+","+
 														 QString::number(depth)+")");
 		}
+
 		m_settings->endArray();
 
-		m_gl.m_proc.set_shared_data(m_pSharedData);
-		m_gl.set_shared_data(m_pSharedData);
+    m_proc.set_shared_data(m_pSharedData);
+    m_gl.set_shared_data(m_pSharedData);
+    m_gl.m_proc = &m_proc;
 
-		m_z_near=0;
+    m_gl_top_view.m_proc = &m_proc;
+    m_gl_top_view.set_shared_data(m_pSharedData);
+
+    m_z_near=0;
 		m_z_far=180;
+    on_sld_z_far_valueChanged(ui->sld_z_far->value());
+    on_sld_z_near_valueChanged(ui->sld_z_near->value());
 }
 
 
@@ -93,8 +106,10 @@ MainWindow::~MainWindow()
 {
 	m_settings->setValue("calib_offset_x", ui->sld_offset_x->value());
 	m_settings->setValue("calib_offset_y", ui->sld_offset_y->value());
-	m_settings->setValue("calib_scale_x", ui->sld_scale_x->value());
-	m_settings->setValue("calib_scale_y", ui->sld_scale_y->value());
+  m_settings->setValue("calib_scale_x", ui->sld_scale_x->value());
+  m_settings->setValue("calib_scale_y", ui->sld_scale_y->value());
+  m_settings->setValue("calib_far_z", ui->sld_z_far->value());
+  m_settings->setValue("calib_near_z", ui->sld_z_near->value());
 
 	m_settings->beginWriteArray("boxes");
 	for(int i=0;i<m_pSharedData->boxes.size();i++)
@@ -107,6 +122,7 @@ MainWindow::~MainWindow()
 		m_settings->setValue("width", QString::number(b.X2-b.X1));
 		m_settings->setValue("height", QString::number(b.Y2-b.Y1));
 		m_settings->setValue("depth", QString::number(b.Z2-b.Z1));
+    m_settings->setValue("behavior", QString::number(b.behavior));
 	}
 	m_settings->endArray();
 
@@ -128,31 +144,40 @@ void MainWindow::on_refreshVideo()
 	if(ui->rad_none->isChecked())
 		m_gl.m_background_video_type = VIDEO_TYPE_NONE;
 	if(ui->rad_ortho->isChecked())
-
+    m_gl.m_perspective = false;
 	if(ui->rad_perspective->isChecked())
 		m_gl.m_perspective = true;
 
-	m_gl.m_dots_visible = ui->chk_dots_visible->isChecked();
-	m_gl.m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
+  m_gl.m_dots_visible = ui->chk_dots_visible->isChecked();
+  m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
 	m_gl.m_boxes_visible = ui->chk_boxes->isChecked();		// AHA
 
 	// Processing
 
 	QTime t = QTime::currentTime();
 	std::vector<blob> bres;
-	m_gl.m_proc.update();
-	m_gl.m_proc.process_boxes();
+  m_proc.update();
+  m_proc.process_boxes();
 
 
   //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
-  blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 0,640,0,480);
+  //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 0,640,0,480);
   //blob b;
+  blob b = m_proc.process_user_volume(m_z_near, m_z_far, 10, 620, 10, 460);
+  m_gl.m_blobs.clear();
+  m_gl.m_blobs.push_back(b.tip_x);
+  m_gl.m_blobs.push_back(b.tip_y);
+  m_gl.m_blobs.push_back(b.x1);
+  m_gl.m_blobs.push_back(b.y1);
+  m_gl.m_blobs.push_back(b.x2);
+  m_gl.m_blobs.push_back(b.y2);
+
 	QString s = QString("Biggest blob :\n")+
 							"CX :"+QString::number(b.cx)+"\n"+
 							"CY :"+QString::number(b.cy)+"\n"+
 							"area :"+QString::number(b.area)+"\n"+
 							"perimeter :"+QString::number(b.perimeter)+"\n"+
-							"grab measure :"+QString::number(1000*(b.area/sqr(b.perimeter)))+"\n";
+							"grab measure :"+QString::number((b.area/sqr(b.perimeter)))+"\n";
 
 	ui->txt_log->setText(s);
 	//qDebug("%d %f %f %d", bres.size(), bres[bres.size()-1].cx, bres[bres.size()-1].cy, bres[bres.size()-1].x1);
@@ -171,57 +196,20 @@ void MainWindow::on_refreshVideo()
 	}
 	if(!ui->but_deactivate_display->isChecked())
 	{
-		m_gl.loadVideoTexture(m_gl.m_proc.get_data().rgb_data);
-		m_gl.loadDebugTexture(m_gl.m_proc.get_data().dbg_data);
+    m_gl.loadVideoTexture(m_proc.get_data().rgb_data);
+    m_gl.loadDebugTexture(m_proc.get_data().dbg_data);
     //m_gl.loadDepthTexture(m_gl.m_proc.get_data().depth_data);
-    m_gl.loadDepthTexture(m_gl.m_proc.get_data().background_depth);
+    m_gl.loadDepthTexture(m_proc.get_data().background_depth);
+    m_gl_top_view.m_textures.clear();
+    m_gl_top_view.m_textures.push_back(m_gl.m_textures[0]);
+    m_gl_top_view.m_textures.push_back(m_gl.m_textures[1]);
+    m_gl_top_view.m_textures.push_back(m_gl.m_textures[2]);
     m_gl.repaint();
+    m_gl_top_view.repaint();
 	}
 
-	// Test states for space invader commands generation
-	if(m_pSharedData->boxes.size()<4) return;
-	static int pstate_left=0;
-	static int pstate_right=0;
-	static int pstate_top=0;
-	static int pstate_big=0;
-	static bool pstate_hand=false;
-
-	if(m_pSharedData->boxes[0].state!=pstate_left)
-	{
-		this->send_max_command("123 "+QString::number(m_pSharedData->boxes[0].state));
-	}
-	if(m_pSharedData->boxes[1].state!=pstate_right)
-	{
-		this->send_max_command("124 "+QString::number(m_pSharedData->boxes[1].state));
-	}
-	if(m_pSharedData->boxes[2].state!=pstate_top)
-	{
-		this->send_max_command("49 "+QString::number(m_pSharedData->boxes[2].state));
-	}
-
-	if(m_pSharedData->boxes[3].state!=pstate_big)
-	{
-		if(m_pSharedData->boxes[3].state==0)
-			this->send_max_command("888");
-		else
-			this->send_max_command("777");
-	}
-
-	/*float value = 1000 * b.area/(sqr(b.perimeter));
-	if((value<m_gl.m_proc.m_grab_threshold)!=pstate_hand)
-	{
-		if((value<m_gl.m_proc.m_grab_threshold))
-		{
-			this->send_max_command("49 1 49 0");
-		}
-	}*/
 
 
-	pstate_left = m_pSharedData->boxes[0].state;
-	pstate_right = m_pSharedData->boxes[1].state;
-	pstate_top = m_pSharedData->boxes[2].state;
-	pstate_big = m_pSharedData->boxes[3].state;
-	//pstate_hand = (value<m_gl.m_proc.m_grab_threshold);
 }
 
 void MainWindow::on_calib_changed()
@@ -242,8 +230,7 @@ void MainWindow::on_calib_changed()
 	ui->lbl_scale_y->setText(QString("Scale Y : ") + QString::number(sy));
 
 
-	//m_gl.m_proc.set_calib(ox,oy,sx,sy);
-	m_gl.m_proc.set_calib(ox,oy,sx,sy);
+  m_proc.set_calib(ox,oy,sx,sy);
 }
 
 void MainWindow::on_sld_z_near_valueChanged(int value)
@@ -301,6 +288,7 @@ void MainWindow::on_but_add_clicked()
 	m.Z1 = z;
 	m.Z2 = z + d;
 	m.state = 0;
+  m.behavior = (SharedStruct::behavior_t)ui->cmb_box_type->currentIndex();
 	m_pSharedData->boxes.push_back(m);
 
 	ui->lst_boxes->addItem(QString("Box : (")	+
@@ -327,7 +315,7 @@ void MainWindow::on_grab_threshold_valueChanged(int value)
 	//float v = value/100.0;
 	ui->lbl_grab_threshold->setText(QString("Grab threshold : ") +
 																	QString::number(value));
-	m_gl.m_proc.m_grab_threshold = value;
+  m_proc.m_grab_threshold = value;
 }
 
 
@@ -349,6 +337,7 @@ void MainWindow::on_lst_boxes_currentRowChanged(int currentRow)
 	ui->edt_box_width->setText(QString::number(m.X2-m.X1));
 	ui->edt_box_height->setText(QString::number(m.Y2-m.Y1));
 	ui->edt_box_depth->setText(QString::number(m.Z2-m.Z1));
+  ui->cmb_box_type->setCurrentIndex((int)m.behavior);
 
 }
 
@@ -402,5 +391,5 @@ void MainWindow::on_sld_left_margin_valueChanged(int value)
 
 void MainWindow::on_but_background_depth_clicked()
 {
-  m_gl.m_proc.set_background_depth(m_z_near);
+  m_proc.set_background_depth(m_z_near);
 }

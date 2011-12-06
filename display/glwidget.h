@@ -24,7 +24,7 @@ protected:
 	void paintGL();
 	unsigned int m_videoWidth, m_videoHeight;
 	SharedStruct::scene * m_shared_scene;
-
+  void loadTexture(GLuint texindex, QImage &img);
 
 
 public:
@@ -37,9 +37,10 @@ public:
 		void set_shared_data(SharedStruct::scene * sd) {m_shared_scene = sd;}
 		void add_box(float x, float y, float z, float w, float h, float d);
 		void add_grid(int size_x, int size_y, float zn, float zf, float width, float height);
+    void draw_icon(float x1, float x2, float y1, float y2, GLuint tex);
 		GLfloat * points;
 		GLfloat * points_color;
-		ZCamProcessing m_proc;
+    ZCamProcessing * m_proc;
 
 		enum_video_type m_background_video_type;
 		bool m_dots_visible;

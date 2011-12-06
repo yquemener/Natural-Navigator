@@ -32,6 +32,7 @@ GLWidget::GLWidget(QObject *parent) :
 	m_boxes_visible = false;
 	m_blobs_visible = true;
 	m_viewer_distance=0.0;
+  m_proc=0;
 }
 
 void GLWidget::initializeGL()
@@ -132,6 +133,22 @@ void GLWidget::draw_box(float x1, float x2, float y1, float y2, float z1, float 
 	}
 }
 
+void GLWidget::draw_icon(float x1, float x2, float y1, float y2, GLuint tex)
+{
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D,tex);
+  glBegin(GL_QUADS);
+  glTexCoord2d(0,0);
+  glVertex3f(  x1, y1, 0 );
+  glTexCoord2d(1,0);
+  glVertex3f(  x2, y1, 0 );
+  glTexCoord2d(1,1);
+  glVertex3f(  x2, y2, 0 );
+  glTexCoord2d(0,1);
+  glVertex3f(  x1, y2, 0 );
+  glEnd();
+}
+
 void GLWidget::paintGL()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -189,8 +206,8 @@ void GLWidget::paintGL()
 		glEnableClientState(GL_COLOR_ARRAY);
 		glScalef(1,1,4);
 
-		glColorPointer(3, GL_FLOAT, 0, m_proc.get_data().dots_3d_colors);
-		glVertexPointer(3, GL_FLOAT, 0, m_proc.get_data().dots_3d);
+    glColorPointer(3, GL_FLOAT, 0, m_proc->get_data().dots_3d_colors);
+    glVertexPointer(3, GL_FLOAT, 0, m_proc->get_data().dots_3d);
 		glDrawArrays(GL_POINTS, 0, 640*480);
 
 		glDisableClientState(GL_VERTEX_ARRAY);
@@ -286,6 +303,19 @@ void GLWidget::loadVideoTexture(unsigned char *data)
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_videoWidth, m_videoHeight,0, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
 	return;
+}
+
+void GLWidget::loadTexture(GLuint texindex, QImage &img)
+{
+  glBindTexture(GL_TEXTURE_2D, texindex);
+
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, 4, img.width(),
+               img.height(), 0, GL_BGRA,
+               GL_UNSIGNED_BYTE, img.bits());
 }
 
 void GLWidget::loadDepthTexture(short *data)

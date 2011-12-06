@@ -46,6 +46,7 @@ typedef struct {
 	int y1;
 	int x2;
 	int y2;
+  int tip_x, tip_y, tip_z;
 } blob;
 
 class ZCamProcessing
@@ -75,10 +76,14 @@ public:
 		bool m_points_rgb;
 
 		void process_boxes();
-		blob process_grab_area(const float z_near, const float z_far,
-														const float x1, const float x2,
-														const float y1, const float y2);
-		void set_shared_data(SharedStruct::scene * sd) { m_shared_scene = sd; }
+    blob process_user_volume(const float z_near, const float z_far,
+                           const float x1, const float x2,
+                           const float y1, const float y2);
+    void process_blobs(const float z_near, const float z_far,
+                       const float x1, const float x2,
+                       const float y1, const float y2,
+                       std::vector<blob>& results);
+    void set_shared_data(SharedStruct::scene * sd) { m_shared_scene = sd; }
     void set_background_depth(float);
 
 		float m_grab_threshold;

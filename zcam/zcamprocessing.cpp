@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <limits>
 
 bool inline is_in_box(float xb, float yb, float zb,
 											float width, float height, float depth,
@@ -63,7 +64,7 @@ ZCamProcessing::ZCamProcessing()
 
   m_background_depth = 0;
   m_out_data.background_depth=m_background_depth;
-  static const char cpyrightrot13[] = "(P) 2011 Lirf Dhrzrare";
+  static const char cpyrightrot13[] = "(P) Lirf Dhrzrare";
 	static const char cpyright[] = "Virtopia interface\n(C) 2011 Yves Quemener\n";
 }
 
@@ -93,14 +94,15 @@ void ZCamProcessing::update()
 
 	for(i=0; i<640*480-3; i++ )
 	{
-		int v;
-		v=m_out_data.depth_data[i];
-    if//((m_background_depth)&&(m_background_depth[i]!=0))
-      ((m_background_depth)&&(v>=m_background_depth[i]))
-    {
-      v=0;
-    }
-		v=v*v*v;
+        int v;
+        v=m_out_data.depth_data[i];
+        if//((m_background_depth)&&(m_background_depth[i]!=0))
+          ((m_background_depth)&&(v>=m_background_depth[i]))
+        {
+          v=0;
+          m_out_data.depth_data[i]=0;
+        }
+        v=v*v*v;
 
 //		if((v/4000000.0<m_z_far)&&
 //			 (v/4000000.0>m_z_near))
@@ -214,180 +216,232 @@ void ZCamProcessing::process_boxes()
 		const int threshold = 50;
 		m = m_shared_scene->boxes[i];
 
-		if(result[i]>threshold)
-		{
-			m.state = 1;
-		}
-		else
-		{
-			m.state=0;
-		}
+    switch(m.behavior)
+    {
+    case(SharedStruct::SIMPLE_BOX):
+      if(result[i]>threshold)
+      {
+        m.state = 1;
+      }
+      else
+      {
+        m.state=0;
+      }
+      break;
+    case(SharedStruct::TOGGLE_BOX):
+      if(result[i]>threshold)
+      {
+        if(m.last_state<threshold)
+          m.state = 1-m.state;
+      }
+      m.last_state = result[i];
+      break;
+    case(SharedStruct::HORIZONTAL_SLIDER):
+      if(result[i]>threshold)
+      {
+        float x1 = (m.X1*6.4 - m_offset_x*640)/m_scale_x;
+        float x2 = (m.X2*6.4 - m_offset_x*640)/m_scale_x;
+        m.state =  (((xs[i] / result[i])-x1)/(x2-x1)) * 100.0;
+      }
+      break;
+    }
 		m_shared_scene->boxes[i] = m;
 	}
 }
 
-blob ZCamProcessing::process_grab_area(const float z_near, const float z_far,
-																				const float x1, const float x2,
-																				const float y1, const float y2)
+blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
+                                       const float x1, const float x2,
+                                       const float y1, const float y2)
 {
-	std::vector<blob> results;
-	results.clear();
+      std::vector<blob> results;
+      blob b;
+      results.clear();
 
-	static uint16_t tmp_img[640*480];
-	static int bag[640*480];
+      process_blobs(z_near,z_far,x1,x2,y1,y2,results);
 
-	int bag_size = 0;
-	int i;
-	int found_one = 0;
-	int cur_blob_index = 0;
 
-	const uint16_t zn16 = (uint16_t)(pow(z_near*4000000.0,0.333333));
-	const uint16_t zf16 = (uint16_t)(pow(z_far*4000000.0,0.333333));
+      b.cx=0;
+      b.cy=0;
+      b.x1=10000;
+      b.x2=0;
+      b.y1=10000;
+      b.y2=0;
+      b.tip_z=std::numeric_limits<int>::max();
+      b.area=0;
+      b.perimeter=0;
 
-	blob b;
+      for(int i=0;i<results.size();i++)
+      {
+        b.x1=min(b.x1, results[i].x1);
+        b.y1=min(b.y1, results[i].y1);
+        b.x2=max(b.x2, results[i].x2);
+        b.y2=max(b.y2, results[i].y2);
+        b.tip_z = min(b.tip_z, results[i].tip_z);
+      }
 
-	b.cx=0;
-	b.cy=0;
-	b.x1=10000;
-	b.x2=0;
-	b.y1=10000;
-	b.y2=0;
-	b.area=0;
-	b.perimeter=0;
+      return b;
+}
 
-	memset(tmp_img, 0, sizeof(uint16_t)*640*480);
-	memset(m_out_data.dbg_data, 0, sizeof(unsigned char)*3*640*480);
+void ZCamProcessing::process_blobs(const float z_near, const float z_far,
+                                   const float x1, const float x2,
+                                   const float y1, const float y2,
+                                   std::vector<blob> &results)
+{
+  results.clear();
 
-	for(int y=y1;y<y2;y++)
-	{
-		int i = y*640+x1;
-		for(int x=x1;x<x2;x++)
-		{
-			if((m_out_data.depth_data[i]>zn16)
-				&& (m_out_data.depth_data[i]<zf16)
-				&& (tmp_img[i]==0))
-			{
-				found_one=1;
-				bag_size=1;
-				bag[0]=i;
-				cur_blob_index++;
+  static uint16_t tmp_img[640*480];
+  static int bag[640*480];
 
-				while(bag_size>0)
-				{
-					int cur_i;
-					cur_i = bag[bag_size-1];
-					m_out_data.dbg_data[cur_i*3]=(cur_blob_index*513)%255;
-					m_out_data.dbg_data[cur_i*3+1]=(cur_blob_index*12513)%255;
-					m_out_data.dbg_data[cur_i*3+2]=(cur_blob_index*551513)%255;
-					bag_size--;
-					b.area++;
-					b.cx += cur_i%640;
-					b.cy += cur_i/640;
-					b.x1 = b.x1>cur_i%640?cur_i%640:b.x1;
-					b.x2 = b.x2<cur_i%640?cur_i%640:b.x2;
-					b.y1 = b.y1>cur_i/640?cur_i/640:b.y1;
-					b.y2 = b.y2<cur_i/640?cur_i/640:b.y2;
+  int bag_size = 0;
+  int i;
+  int found_one = 0;
+  int cur_blob_index = 0;
 
-					bool perimeter=false;
+  const uint16_t zn16 = (uint16_t)(pow(z_near*4000000.0,0.333333));
+  const uint16_t zf16 = (uint16_t)(pow(z_far*4000000.0,0.333333));
 
-					if((cur_i<640)||(cur_i>479*640)) continue;
+  blob b;
 
-					if((cur_i%640>x1)
-						&& (m_out_data.depth_data[(cur_i-1)]>zn16)
-						&& (m_out_data.depth_data[(cur_i-1)]<zf16))
-					{
-						if(tmp_img[cur_i-1]==0)
-						{
-							bag[bag_size++]=cur_i-1;
-							tmp_img[cur_i-1]=cur_blob_index;
-						}
-					}
-					else perimeter = true;
+  b.cx=0;
+  b.cy=0;
+  b.x1=10000;
+  b.x2=0;
+  b.y1=10000;
+  b.y2=0;
+  b.tip_z=std::numeric_limits<int>::max();
+  b.area=0;
+  b.perimeter=0;
 
-					if((cur_i%640<x2)
-						&& (m_out_data.depth_data[(cur_i+1)]>zn16)
-						&& (m_out_data.depth_data[(cur_i+1)]<zf16))
-					{
-						if(tmp_img[cur_i+1]==0)
-						{
-							bag[bag_size++]=cur_i+1;
-							tmp_img[cur_i+1]=cur_blob_index;
-						}
-					}
-					else perimeter = true;
+  memset(tmp_img, 0, sizeof(uint16_t)*640*480);
+  memset(m_out_data.dbg_data, 0, sizeof(unsigned char)*3*640*480);
 
-					if((cur_i/640>y1)
-						&& (m_out_data.depth_data[(cur_i-640)]>zn16)
-						&& (m_out_data.depth_data[(cur_i-640)]<zf16))
-					{
-						if(tmp_img[cur_i-640]==0)
-						{
-							bag[bag_size++]=cur_i-640;
-							tmp_img[cur_i-640]=cur_blob_index;
-						}
-					}
-					else perimeter = true;
+  for(int y=y1;y<y2;y++)
+  {
+    int i = y*640+x1;
+    for(int x=x1;x<x2;x++)
+    {
+      if((m_out_data.depth_data[i]>zn16)
+          && (m_out_data.depth_data[i]<zf16)
+          && (tmp_img[i]==0))
+      {
+        found_one=1;
+        bag_size=1;
+        bag[0]=i;
+        cur_blob_index++;
 
-					if((cur_i/640<y2)
-						&& (m_out_data.depth_data[(cur_i+640)]>zn16)
-						&& (m_out_data.depth_data[(cur_i+640)]<zf16))
-					{
-						if(tmp_img[cur_i+640]==0)
-						{
-							bag[bag_size++]=cur_i+640;
-							tmp_img[cur_i+640]=cur_blob_index;
-						}
-					}
-					else perimeter = true;
+        while(bag_size>0)
+        {
+          int cur_i;
+          cur_i = bag[bag_size-1];
+          m_out_data.dbg_data[cur_i*3]=(cur_blob_index*513)%255;
+          m_out_data.dbg_data[cur_i*3+1]=(cur_blob_index*12513)%255;
+          m_out_data.dbg_data[cur_i*3+2]=(cur_blob_index*551513)%255;
+          bag_size--;
+          b.area++;
+          b.cx += cur_i%640;
+          b.cy += cur_i/640;
+          b.x1 = b.x1>cur_i%640?cur_i%640:b.x1;
+          b.x2 = b.x2<cur_i%640?cur_i%640:b.x2;
+          b.y1 = b.y1>cur_i/640?cur_i/640:b.y1;
+          b.y2 = b.y2<cur_i/640?cur_i/640:b.y2;
+          if(m_out_data.depth_data[cur_i]<b.tip_z)
+          {
+            b.tip_x = cur_i%640;
+            b.tip_y = cur_i/640;
+            b.tip_z = m_out_data.depth_data[cur_i];
+          }
 
-					if(perimeter)
-					{
-						b.perimeter++;
-						m_out_data.dbg_data[cur_i*3]=0;
-						m_out_data.dbg_data[cur_i*3+1]=254;
-						m_out_data.dbg_data[cur_i*3+2]=0;
-					}
-				}
+          bool perimeter=false;
 
-				b.cx /= b.area;
-				b.cy /= b.area;
-				if(b.area>15)
-					results.push_back(b);
-				b.cx=0;
-				b.cy=0;
-				b.x1=10000;
-				b.x2=0;
-				b.y1=10000;
-				b.y2=0;
-				b.area=0;
-				b.perimeter=0;
-			}
-			i++;
-		}
-	}
-	int area_max=0;
-	int i_max=-1;
-	for(int i=0;i<results.size();i++)
-	{
-		if(results[i].area>area_max)
-		{
-			area_max=results[i].area;
-			i_max=i;
-		}
-	}
+          if((cur_i<640)||(cur_i>479*640)) continue;
 
-	if(i_max==-1)
-		return b;
-	else
-		return results[i_max];
-	/*if(results[i_max].area==0) return 0;
-	return (float)(results[i_max].perimeter)/sqrt(results[i_max].area);*/
+          if((cur_i%640>x1)
+              && (m_out_data.depth_data[(cur_i-1)]>zn16)
+              && (m_out_data.depth_data[(cur_i-1)]<zf16))
+          {
+            if(tmp_img[cur_i-1]==0)
+            {
+              bag[bag_size++]=cur_i-1;
+              tmp_img[cur_i-1]=cur_blob_index;
+            }
+          }
+          else perimeter = true;
+
+          if((cur_i%640<x2)
+              && (m_out_data.depth_data[(cur_i+1)]>zn16)
+              && (m_out_data.depth_data[(cur_i+1)]<zf16))
+          {
+            if(tmp_img[cur_i+1]==0)
+            {
+              bag[bag_size++]=cur_i+1;
+              tmp_img[cur_i+1]=cur_blob_index;
+            }
+          }
+          else perimeter = true;
+
+          if((cur_i/640>y1)
+              && (m_out_data.depth_data[(cur_i-640)]>zn16)
+              && (m_out_data.depth_data[(cur_i-640)]<zf16))
+          {
+            if(tmp_img[cur_i-640]==0)
+            {
+              bag[bag_size++]=cur_i-640;
+              tmp_img[cur_i-640]=cur_blob_index;
+            }
+          }
+          else perimeter = true;
+
+          if((cur_i/640<y2)
+              && (m_out_data.depth_data[(cur_i+640)]>zn16)
+              && (m_out_data.depth_data[(cur_i+640)]<zf16))
+          {
+            if(tmp_img[cur_i+640]==0)
+            {
+              bag[bag_size++]=cur_i+640;
+              tmp_img[cur_i+640]=cur_blob_index;
+            }
+          }
+          else perimeter = true;
+
+          if(perimeter)
+          {
+            b.perimeter++;
+            m_out_data.dbg_data[cur_i*3]=0;
+            m_out_data.dbg_data[cur_i*3+1]=254;
+            m_out_data.dbg_data[cur_i*3+2]=0;
+          }
+        }
+
+        b.cx /= b.area;
+        b.cy /= b.area;
+        if(b.area>15)
+          results.push_back(b);
+        b.cx=0;
+        b.cy=0;
+        b.x1=10000;
+        b.x2=0;
+        b.y1=10000;
+        b.y2=0;
+        b.tip_z=std::numeric_limits<int>::max();
+        b.area=0;
+        b.perimeter=0;
+      }
+      i++;
+    }
+  }
 }
 
 void ZCamProcessing::set_background_depth(float zdebug)
 {
-  const float MULTIPLY_FACTOR = 0.9f;
+  const float MULTIPLY_FACTOR = 0.99f;
   int i;
+  uint32_t ts;
+
+
+  if (freenect_sync_get_depth((void**)&(m_out_data.depth_data), &ts, 0, FREENECT_DEPTH_11BIT) < 0)
+  {
+    return;
+  }
 
   if(m_background_depth==0)
   {
