@@ -198,12 +198,16 @@ void MainWindow::on_refreshVideo()
 	{
     m_gl.loadVideoTexture(m_proc.get_data().rgb_data);
     m_gl.loadDebugTexture(m_proc.get_data().dbg_data);
-    //m_gl.loadDepthTexture(m_gl.m_proc.get_data().depth_data);
-    m_gl.loadDepthTexture(m_proc.get_data().background_depth);
-    m_gl_top_view.m_textures.clear();
+    m_gl.loadDepthTexture(m_proc.get_data().depth_data);
+
+    m_gl_top_view.loadVideoTexture(m_proc.get_data().rgb_data);
+    m_gl_top_view.loadDebugTexture(m_proc.get_data().dbg_data);
+    m_gl_top_view.loadDepthTexture(m_proc.get_data().depth_data);
+    //m_gl.loadDepthTexture(m_proc.get_data().background_depth);
+    /*m_gl_top_view.m_textures.clear();
     m_gl_top_view.m_textures.push_back(m_gl.m_textures[0]);
     m_gl_top_view.m_textures.push_back(m_gl.m_textures[1]);
-    m_gl_top_view.m_textures.push_back(m_gl.m_textures[2]);
+    m_gl_top_view.m_textures.push_back(m_gl.m_textures[2]);*/
     m_gl.repaint();
     m_gl_top_view.repaint();
 	}
