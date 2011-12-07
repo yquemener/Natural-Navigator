@@ -20,6 +20,7 @@ include_directories (/usr/local/include/libfreenect)
 
 link_directories(/usr/local/lib64/)
 
+
 INCLUDE_DIRECTORIES  (
         ${CMAKE_CURRENT_BINARY_DIR}
         )

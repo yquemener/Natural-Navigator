@@ -46,7 +46,8 @@ typedef struct {
 	int y1;
 	int x2;
 	int y2;
-  int tip_x, tip_y, tip_z;
+  int tip_x, tip_y, tip_z; //tip_z could also be called 'z1'
+  int z2;
 } blob;
 
 class ZCamProcessing

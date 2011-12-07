@@ -19,7 +19,8 @@ typedef struct {
 } box;
 
 typedef struct {
-	std::vector<box> boxes;
+  std::vector<box> user_boxes;
+  box detection_user;
 } scene;
 
 }

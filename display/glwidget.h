@@ -53,6 +53,9 @@ public:
 		float m_global_rot_x;
 		float m_global_rot_y;
 		float m_global_rot_z;
+    float m_look_at_x;
+    float m_look_at_y;
+    float m_look_at_z;
 		float m_viewer_distance;
 
 		int m_drag_old_x;

@@ -28,6 +28,9 @@ GLWidget::GLWidget(QObject *parent) :
 	m_global_rot_x = 0.0;
 	m_global_rot_y = 0.0;
 	m_global_rot_z = 0.0;
+  m_look_at_x = 320;
+  m_look_at_y = 240;
+  m_look_at_z = 500;
 	m_perspective = false;
 	m_boxes_visible = false;
 	m_blobs_visible = true;
@@ -155,11 +158,11 @@ void GLWidget::paintGL()
 	glLoadIdentity( );
 
 	glTranslatef(0,0,m_viewer_distance);
-	glTranslatef(320,240,0);
+  glTranslatef(m_look_at_x, m_look_at_y, m_look_at_z);
 	glRotatef(m_global_rot_y, 1,0,0);
 	glRotatef(m_global_rot_x, 0,1,0);
 
-	glTranslatef(-320,-240,0);
+  glTranslatef(-m_look_at_x,-m_look_at_y,-m_look_at_z);
 	glTranslatef(640,0,0);
 	//glRotatef(m_global_rot_z, 0,0,1);
 
@@ -224,10 +227,10 @@ void GLWidget::paintGL()
 		glScalef(6.4,4.8,1);
 		glScalef(1,1,4);
 		glEnable(GL_BLEND);
-		int imax = m_shared_scene->boxes.size();
+    int imax = m_shared_scene->user_boxes.size();
 		for(int i=0;i<imax;i++)
 		{
-			SharedStruct::box m = m_shared_scene->boxes[i];
+      SharedStruct::box m = m_shared_scene->user_boxes[i];
 			float x1 = m.X1;
 			float y1 = m.Y1;
 			float z1 = m.Z1;
@@ -239,6 +242,15 @@ void GLWidget::paintGL()
 
 		glPopMatrix();
 	}
+
+  {
+    glPushMatrix();
+    //glTranslatef(-640,0,0);
+    glScalef(-1,1,4);
+    SharedStruct::box b=m_shared_scene->detection_user;
+    draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,0,6);
+    glPopMatrix();
+  }
 	// Draw blobs
 
 	if(m_blobs_visible)

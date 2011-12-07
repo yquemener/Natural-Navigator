@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
       b.state = 0;
       b.last_state = 0;
       //b.behavior = SharedStruct::HORIZONTAL_SLIDER;
-			m_pSharedData->boxes.push_back(b);
+      m_pSharedData->user_boxes.push_back(b);
 			ui->lst_boxes->addItem(QString("Box : (")	+
 														 QString::number(x)+","+
 														 QString::number(y)+","+
@@ -93,6 +93,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     m_gl_top_view.m_proc = &m_proc;
     m_gl_top_view.set_shared_data(m_pSharedData);
+    m_gl_top_view.m_global_rot_x=-13;
+    m_gl_top_view.m_global_rot_y=54;
+    m_gl_top_view.m_viewer_distance=-100;
+    m_gl_top_view.m_perspective=true;
+    m_gl_top_view.m_dots_visible=true;
+    m_gl_top_view.m_background_video_type = VIDEO_TYPE_NONE;
 
     m_z_near=0;
 		m_z_far=180;
@@ -112,10 +118,10 @@ MainWindow::~MainWindow()
   m_settings->setValue("calib_near_z", ui->sld_z_near->value());
 
 	m_settings->beginWriteArray("boxes");
-	for(int i=0;i<m_pSharedData->boxes.size();i++)
+  for(int i=0;i<m_pSharedData->user_boxes.size();i++)
 	{
 		m_settings->setArrayIndex(i);
-		SharedStruct::box b = m_pSharedData->boxes[i];
+    SharedStruct::box b = m_pSharedData->user_boxes[i];
 		m_settings->setValue("x", QString::number(b.X1));
 		m_settings->setValue("y", QString::number(b.Y1));
 		m_settings->setValue("z", QString::number(b.Z1));
@@ -163,7 +169,7 @@ void MainWindow::on_refreshVideo()
   //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
   //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 0,640,0,480);
   //blob b;
-  blob b = m_proc.process_user_volume(m_z_near, m_z_far, 10, 620, 10, 460);
+  blob b = m_proc.process_user_volume(m_z_near, m_z_far, 0, 640, 0, 480);
   m_gl.m_blobs.clear();
   m_gl.m_blobs.push_back(b.tip_x);
   m_gl.m_blobs.push_back(b.tip_y);
@@ -183,7 +189,7 @@ void MainWindow::on_refreshVideo()
 	//qDebug("%d %f %f %d", bres.size(), bres[bres.size()-1].cx, bres[bres.size()-1].cy, bres[bres.size()-1].x1);
 
 	// Copying ZCamProcessing results into the GLWidget
-	m_gl.m_blobs.clear();
+  //m_gl.m_blobs.clear();
 	for(int i=0;i<bres.size();i++)
 	{
 		m_gl.m_blobs.push_back(bres[i].cx);
@@ -196,19 +202,16 @@ void MainWindow::on_refreshVideo()
 	}
 	if(!ui->but_deactivate_display->isChecked())
 	{
+    m_gl.makeCurrent();
     m_gl.loadVideoTexture(m_proc.get_data().rgb_data);
     m_gl.loadDebugTexture(m_proc.get_data().dbg_data);
     m_gl.loadDepthTexture(m_proc.get_data().depth_data);
+    m_gl.repaint();
 
+    m_gl_top_view.makeCurrent();
     m_gl_top_view.loadVideoTexture(m_proc.get_data().rgb_data);
     m_gl_top_view.loadDebugTexture(m_proc.get_data().dbg_data);
     m_gl_top_view.loadDepthTexture(m_proc.get_data().depth_data);
-    //m_gl.loadDepthTexture(m_proc.get_data().background_depth);
-    /*m_gl_top_view.m_textures.clear();
-    m_gl_top_view.m_textures.push_back(m_gl.m_textures[0]);
-    m_gl_top_view.m_textures.push_back(m_gl.m_textures[1]);
-    m_gl_top_view.m_textures.push_back(m_gl.m_textures[2]);*/
-    m_gl.repaint();
     m_gl_top_view.repaint();
 	}
 
@@ -293,7 +296,7 @@ void MainWindow::on_but_add_clicked()
 	m.Z2 = z + d;
 	m.state = 0;
   m.behavior = (SharedStruct::behavior_t)ui->cmb_box_type->currentIndex();
-	m_pSharedData->boxes.push_back(m);
+  m_pSharedData->user_boxes.push_back(m);
 
 	ui->lst_boxes->addItem(QString("Box : (")	+
 												 QString::number(x)+","+
@@ -328,12 +331,12 @@ void MainWindow::on_pushButton_clicked()
 		if(ui->lst_boxes->selectedItems().count()==0) return;
 		int i = ui->lst_boxes->row(ui->lst_boxes->selectedItems()[0]);
 		ui->lst_boxes->takeItem(i);
-		m_pSharedData->boxes.erase(m_pSharedData->boxes.begin()+i);
+    m_pSharedData->user_boxes.erase(m_pSharedData->user_boxes.begin()+i);
 }
 
 void MainWindow::on_lst_boxes_currentRowChanged(int currentRow)
 {
-	SharedStruct::box m = m_pSharedData->boxes[currentRow];
+  SharedStruct::box m = m_pSharedData->user_boxes[currentRow];
 
 	ui->edt_box_x->setText(QString::number(m.X1));
 	ui->edt_box_y->setText(QString::number(m.Y1));
@@ -365,9 +368,9 @@ void MainWindow::on_sld_depth_boxes_actionTriggered(int action)
 
 void MainWindow::on_sld_depth_boxes_sliderMoved(int position)
 {
-	for(int i=0; i< m_pSharedData->boxes.size(); i++)
+  for(int i=0; i< m_pSharedData->user_boxes.size(); i++)
 	{
-	 m_pSharedData->boxes[i].Z2 = position;
+   m_pSharedData->user_boxes[i].Z2 = position;
 	}
 }
 
@@ -385,12 +388,12 @@ void MainWindow::on_ui_visible_clicked()
 
 void MainWindow::on_sld_right_margin_valueChanged(int value)
 {
-		m_pSharedData->boxes[1].X2 = 100-value;
+    m_pSharedData->user_boxes[1].X2 = 100-value;
 }
 
 void MainWindow::on_sld_left_margin_valueChanged(int value)
 {
-		m_pSharedData->boxes[0].X1 = value;
+    m_pSharedData->user_boxes[0].X1 = value;
 }
 
 void MainWindow::on_but_background_depth_clicked()

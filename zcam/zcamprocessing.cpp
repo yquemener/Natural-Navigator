@@ -161,7 +161,7 @@ void ZCamProcessing::set_calib(float off_x, float off_y,
 void ZCamProcessing::process_boxes()
 {
 
-	int imax = m_shared_scene->boxes.size();
+  int imax = m_shared_scene->user_boxes.size();
 	std::vector<int> result;
 	std::vector<int> xs;
 	std::vector<int> ys;
@@ -176,7 +176,7 @@ void ZCamProcessing::process_boxes()
 
 	for(int i=0;i<imax;i++)
 	{
-		SharedStruct::box m = m_shared_scene->boxes[i];
+    SharedStruct::box m = m_shared_scene->user_boxes[i];
 		m.X1 = ((100-m.X1)*6.4 - m_offset_x*640)/m_scale_x;
 		m.Y1 = (m.Y1*4.8 - m_offset_y*480)/m_scale_y;
 		m.X2 = ((100-m.X2)*6.4 - m_offset_x*640)/m_scale_x;
@@ -214,7 +214,7 @@ void ZCamProcessing::process_boxes()
 	{
 		SharedStruct::box m;
 		const int threshold = 50;
-		m = m_shared_scene->boxes[i];
+    m = m_shared_scene->user_boxes[i];
 
     switch(m.behavior)
     {
@@ -245,7 +245,7 @@ void ZCamProcessing::process_boxes()
       }
       break;
     }
-		m_shared_scene->boxes[i] = m;
+    m_shared_scene->user_boxes[i] = m;
 	}
 }
 
@@ -267,17 +267,38 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
       b.y1=10000;
       b.y2=0;
       b.tip_z=std::numeric_limits<int>::max();
+      b.z2=std::numeric_limits<int>::min();
       b.area=0;
       b.perimeter=0;
 
       for(int i=0;i<results.size();i++)
       {
-        b.x1=min(b.x1, results[i].x1);
-        b.y1=min(b.y1, results[i].y1);
-        b.x2=max(b.x2, results[i].x2);
-        b.y2=max(b.y2, results[i].y2);
-        b.tip_z = min(b.tip_z, results[i].tip_z);
+        if(results[i].area>100)
+        {
+          b.x1=min(b.x1, results[i].x1);
+          b.y1=min(b.y1, results[i].y1);
+          b.x2=max(b.x2, results[i].x2);
+          b.y2=max(b.y2, results[i].y2);
+          b.tip_z = min(b.tip_z, results[i].tip_z);
+          b.z2 = max(b.z2,results[i].z2);
+        }
       }
+
+      m_shared_scene->detection_user.X1 = b.x1;
+      m_shared_scene->detection_user.X2 = b.x2;
+      m_shared_scene->detection_user.Y1 = b.y1;
+      m_shared_scene->detection_user.Y2 = b.y2;
+      m_shared_scene->detection_user.Z1 = float(b.tip_z)*b.tip_z*b.tip_z/4000000.0;
+      m_shared_scene->detection_user.Z2 = float(b.z2)*b.z2*b.z2/4000000.0;
+
+      m_shared_scene->detection_user.X1 =
+          (m_shared_scene->detection_user.X1)*m_scale_x + m_offset_x*640;
+      m_shared_scene->detection_user.Y1 =
+          (m_shared_scene->detection_user.Y1)*m_scale_y + m_offset_y*480;
+      m_shared_scene->detection_user.X2 =
+          (m_shared_scene->detection_user.X2)*m_scale_x + m_offset_x*640;
+      m_shared_scene->detection_user.Y2 =
+          (m_shared_scene->detection_user.Y2)*m_scale_y + m_offset_y*480;
 
       return b;
 }
@@ -309,6 +330,7 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
   b.y1=10000;
   b.y2=0;
   b.tip_z=std::numeric_limits<int>::max();
+  b.z2=std::numeric_limits<int>::min();;
   b.area=0;
   b.perimeter=0;
 
@@ -333,9 +355,9 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
         {
           int cur_i;
           cur_i = bag[bag_size-1];
-          m_out_data.dbg_data[cur_i*3]=(cur_blob_index*513)%255;
-          m_out_data.dbg_data[cur_i*3+1]=(cur_blob_index*12513)%255;
-          m_out_data.dbg_data[cur_i*3+2]=(cur_blob_index*551513)%255;
+          m_out_data.dbg_data[cur_i*3]=0;//(cur_blob_index*513)%255;
+          m_out_data.dbg_data[cur_i*3+1]=128;//(cur_blob_index*12513)%255;
+          m_out_data.dbg_data[cur_i*3+2]=0;//(cur_blob_index*551513)%255;
           bag_size--;
           b.area++;
           b.cx += cur_i%640;
@@ -349,6 +371,10 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
             b.tip_x = cur_i%640;
             b.tip_y = cur_i/640;
             b.tip_z = m_out_data.depth_data[cur_i];
+          }
+          if(m_out_data.depth_data[cur_i]>b.z2)
+          {
+            b.z2 = m_out_data.depth_data[cur_i];
           }
 
           bool perimeter=false;
@@ -423,6 +449,7 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
         b.y1=10000;
         b.y2=0;
         b.tip_z=std::numeric_limits<int>::max();
+        b.z2=std::numeric_limits<int>::min();;
         b.area=0;
         b.perimeter=0;
       }
@@ -455,7 +482,6 @@ void ZCamProcessing::set_background_depth(float zdebug)
   {
     if(m_background_depth[i]>1024)
     {
-      printf("zero\n");
       while((i<640*480-1)&&(m_background_depth[i]>1024))
       {
         i++;
@@ -466,7 +492,6 @@ void ZCamProcessing::set_background_depth(float zdebug)
       {
         m_background_depth[j]=v;
       }
-      printf("%d %d\t",firsti,i);
       firsti=i;
     }
     else
