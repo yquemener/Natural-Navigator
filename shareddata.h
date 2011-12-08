@@ -21,6 +21,9 @@ typedef struct {
 typedef struct {
   std::vector<box> user_boxes;
   box detection_user;
+  box detection_user_max;
+  float tip_x,tip_y,tip_z;  // Coordinates of the closest point of the user volume
+  float head_x,head_y,head_z; // Coordinates of the highest point of the user volume
 } scene;
 
 }

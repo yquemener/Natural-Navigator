@@ -247,10 +247,43 @@ void GLWidget::paintGL()
     glPushMatrix();
     //glTranslatef(-640,0,0);
     glScalef(-1,1,4);
+
+    // Draw the tip position
+    static GLUquadric* stayHere = gluNewQuadric();
+    glPushMatrix();
+    glTranslatef(m_shared_scene->tip_x,
+                 m_shared_scene->tip_y,
+                 m_shared_scene->tip_z);
+    glScalef(1,1,0.25f);
+    glColor3f(1,0,0);
+    gluSphere(stayHere, 15.0,20,10);
+    glPopMatrix();
+
+
+    // Draw the head position
+    glPushMatrix();
+    glTranslatef(m_shared_scene->head_x,
+                 m_shared_scene->head_y,
+                 m_shared_scene->head_z);
+    glScalef(1,1,0.25f);
+    glColor3f(1,0,0);
+    gluSphere(stayHere, 15.0,20,10);
+    glPopMatrix();
+
+
+    //Draw the user volume and max volume
     SharedStruct::box b=m_shared_scene->detection_user;
+    draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,1,3);
+
+    //Draw the maximum volume
+    b=m_shared_scene->detection_user_max;
     draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,0,6);
+
+
     glPopMatrix();
   }
+
+
 	// Draw blobs
 
 	if(m_blobs_visible)

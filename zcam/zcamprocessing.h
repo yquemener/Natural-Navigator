@@ -47,6 +47,7 @@ typedef struct {
 	int x2;
 	int y2;
   int tip_x, tip_y, tip_z; //tip_z could also be called 'z1'
+  int head_x, head_y, head_z; //head_y could also be called 'y1'
   int z2;
 } blob;
 
