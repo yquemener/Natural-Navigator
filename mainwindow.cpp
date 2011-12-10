@@ -225,22 +225,34 @@ void MainWindow::on_refreshVideo()
     newb.X2 = forwardb.X1;
     newb.Y1 = m_pSharedData->detection_user_max.Y1;
     newb.Y2 = m_pSharedData->detection_user_max.Y2;
+    newb.xs = m_pSharedData->nav_boxes[1].xs;
+    newb.ys = m_pSharedData->nav_boxes[1].ys;
+    newb.zs = m_pSharedData->nav_boxes[1].zs;
     m_pSharedData->nav_boxes[1] = newb;
     // Right strafe
     newb.X1 = forwardb.X2;
     newb.X2 = m_pSharedData->detection_user_max.X2;
+    newb.xs = m_pSharedData->nav_boxes[2].xs;
+    newb.ys = m_pSharedData->nav_boxes[2].ys;
+    newb.zs = m_pSharedData->nav_boxes[2].zs;
     m_pSharedData->nav_boxes[2] = newb;
     // up strafe
     newb.X1 = m_pSharedData->detection_user_max.X1;
     newb.X2 = m_pSharedData->detection_user_max.X2;
     newb.Y1 = m_pSharedData->detection_user_max.Y1;
     newb.Y2 = forwardb.Y1;
+    newb.xs = m_pSharedData->nav_boxes[3].xs;
+    newb.ys = m_pSharedData->nav_boxes[3].ys;
+    newb.zs = m_pSharedData->nav_boxes[3].zs;
     m_pSharedData->nav_boxes[3] = newb;
     // down strafe
     newb.Z1 = m_pSharedData->detection_user_max.Z1;
     newb.Z2 = forwardb.Z2;
     newb.Y1 = forwardb.Y2;
     newb.Y2 = m_pSharedData->detection_user_max.Y2;
+    newb.xs = m_pSharedData->nav_boxes[4].xs;
+    newb.ys = m_pSharedData->nav_boxes[4].ys;
+    newb.zs = m_pSharedData->nav_boxes[4].zs;
     m_pSharedData->nav_boxes[4] = newb;
 
 
@@ -273,7 +285,11 @@ void MainWindow::on_refreshVideo()
     m_gl_top_view.repaint();
 	}
 
+  // Sends UDP messages
 
+  if(m_pSharedData->nav_boxes[0].m_state!=0)
+  {
+  }
 
 }
 

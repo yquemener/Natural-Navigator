@@ -200,15 +200,15 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
 
   int imax = boxes.size();
 	std::vector<int> result;
-	std::vector<int> xs;
-	std::vector<int> ys;
-	std::vector<int> zs;
 	for(int i=0;i<imax;i++)
 	{
 		result.push_back(0);
-		xs.push_back(0);
+    boxes[i].xs=0;
+    boxes[i].ys=0;
+    boxes[i].zs=0;
+    /*xs.push_back(0);
 		ys.push_back(0);
-		zs.push_back(0);
+    zs.push_back(0);*/
 	}
 
 	for(int i=0;i<imax;i++)
@@ -224,7 +224,6 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
       c=m.X2;
       m.X2=m.X1;
       m.X1=c;
-
     }
     else
     {
@@ -250,20 +249,20 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
 					 (m_out_data.dots_3d[index*3+2]<m.Z2))
 				{
 					result[i]++;
-					xs[i]+=x;
-					ys[i]+=y;
-					zs[i]+=m_out_data.dots_3d[index*3+2];
+          m.xs+=x;
+          m.ys+=y;
+          m.zs+=m_out_data.dots_3d[index*3+2];
 				}
 				index++;
 			}
 		}
-	}
-	for(int i=0;i<imax;i++)
-	{
-		SharedStruct::box m;
     const int threshold = 50;
-    m = boxes[i];
-
+    if(result[i]>0)
+    {
+      m.xs/=result[i];
+      m.ys/=result[i];
+      m.zs/=result[i];
+    }
 
     switch(m.behavior)
     {
@@ -288,9 +287,35 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
     case(SharedStruct::HORIZONTAL_SLIDER):
       if(result[i]>threshold)
       {
-        float x1 = (m.X1*6.4 - m_offset_x*640)/m_scale_x;
-        float x2 = (m.X2*6.4 - m_offset_x*640)/m_scale_x;
-        m.state =  (((xs[i] / result[i])-x1)/(x2-x1)) * 100.0;
+        if(rescale)
+        {
+          float x1 = (m.X1*6.4 - m_offset_x*640)/m_scale_x;
+          float x2 = (m.X2*6.4 - m_offset_x*640)/m_scale_x;
+          m.state =  (((m.xs)-x1)/(x2-x1)) * 100.0;
+        }
+        else
+        {
+          float x1 = (m.X1 - m_offset_x*640)/m_scale_x;
+          float x2 = (m.X2 - m_offset_x*640)/m_scale_x;
+          m.state =  (((m.xs)-x1)/(x2-x1)) * 100.0;
+        }
+      }
+      break;
+    case(SharedStruct::VERTICAL_SLIDER):
+      if(result[i]>threshold)
+      {
+        if(rescale)
+        {
+          float y1 = (m.Y1*4.8 - m_offset_y*480)/m_scale_y;
+          float y2 = (m.Y2*4.8 - m_offset_y*480)/m_scale_y;
+          m.state =  (((m.ys)-y1)/(y2-y1)) * 100.0;
+        }
+        else
+        {
+          float y1 = (m.Y1 - m_offset_y*480)/m_scale_y;
+          float y2 = (m.Y2 - m_offset_y*480)/m_scale_y;
+          m.state =  (((m.ys)-y1)/(y2-y1)) * 100.0;
+        }
       }
       break;
     }

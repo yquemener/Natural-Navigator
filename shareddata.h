@@ -7,7 +7,7 @@
 
 namespace SharedStruct
 {
-    typedef enum{ SIMPLE_BOX, HORIZONTAL_SLIDER, TOGGLE_BOX }
+    typedef enum{ SIMPLE_BOX, HORIZONTAL_SLIDER, VERTICAL_SLIDER, TOGGLE_BOX }
     behavior_t;
 
 typedef struct {
@@ -15,6 +15,7 @@ typedef struct {
 	float R,G,B;
 	int state;
   int last_state;
+  int xs,ys,zs;
   behavior_t behavior;
 } box;
 
