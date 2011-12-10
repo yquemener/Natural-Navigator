@@ -112,8 +112,7 @@ void ZCamProcessing::update()
 	{
         int v;
         v=m_out_data.depth_data[i];
-        if//((m_background_depth)&&(m_background_depth[i]!=0))
-          ((m_background_depth)&&(v>=m_background_depth[i]))
+        if((m_background_depth)&&(v>=m_background_depth[i]))
         {
           v=0;
           m_out_data.depth_data[i]=0;
@@ -154,7 +153,28 @@ void ZCamProcessing::update()
 			m_out_data.dots_3d_colors[i*3+1] = v/256000000.0;
 			m_out_data.dots_3d_colors[i*3+2] = v/256000000.0;
 		}
-	}
+  }
+
+  // Denoise
+
+  /*for(i=641;i<640*480-641;i++)
+  {
+    // Denoise by connect-8 erosion
+
+    if((m_out_data.depth_data[i-641]<0)||
+       (m_out_data.depth_data[i-640]<0)||
+       (m_out_data.depth_data[i-639]<0)||
+       (m_out_data.depth_data[i-1]<0)||
+       (m_out_data.depth_data[i+1]<0)||
+       (m_out_data.depth_data[i+639]<0)||
+       (m_out_data.depth_data[i+640]<0)||
+       (m_out_data.depth_data[i+641]<0))
+    {
+      m_out_data.dots_3d[i*3] = 0;
+      m_out_data.dots_3d[i*3+1] = 0;
+      m_out_data.dots_3d[i*3+2] = 0;
+    }
+  }*/
 
 }
 
@@ -174,10 +194,11 @@ void ZCamProcessing::set_calib(float off_x, float off_y,
 
 
 
-void ZCamProcessing::process_boxes()
+void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
+                                   const bool rescale = true)
 {
 
-  int imax = m_shared_scene->user_boxes.size();
+  int imax = boxes.size();
 	std::vector<int> result;
 	std::vector<int> xs;
 	std::vector<int> ys;
@@ -192,11 +213,26 @@ void ZCamProcessing::process_boxes()
 
 	for(int i=0;i<imax;i++)
 	{
-    SharedStruct::box m = m_shared_scene->user_boxes[i];
-		m.X1 = ((100-m.X1)*6.4 - m_offset_x*640)/m_scale_x;
-		m.Y1 = (m.Y1*4.8 - m_offset_y*480)/m_scale_y;
-		m.X2 = ((100-m.X2)*6.4 - m_offset_x*640)/m_scale_x;
-		m.Y2 = (m.Y2*4.8 - m_offset_y*480)/m_scale_y;
+    SharedStruct::box m = boxes[i];
+    if(rescale)
+    {
+      m.X1 = ((100-m.X1)*6.4 - m_offset_x*640)/m_scale_x;
+      m.Y1 = (m.Y1*4.8 - m_offset_y*480)/m_scale_y;
+      m.X2 = ((100-m.X2)*6.4 - m_offset_x*640)/m_scale_x;
+      m.Y2 = (m.Y2*4.8 - m_offset_y*480)/m_scale_y;
+      float c;
+      c=m.X2;
+      m.X2=m.X1;
+      m.X1=c;
+
+    }
+    else
+    {
+      m.X1 = (m.X1 - m_offset_x*640)/m_scale_x;
+      m.Y1 = (m.Y1 - m_offset_y*480)/m_scale_y;
+      m.X2 = (m.X2 - m_offset_x*640)/m_scale_x;
+      m.Y2 = (m.Y2 - m_offset_y*480)/m_scale_y;
+    }
 
 		//printf("after : %f %f %f %f \n", m.X1, m.X2, m.Y1, m.Y2);
 
@@ -204,16 +240,12 @@ void ZCamProcessing::process_boxes()
 		clamp(m.X2,0,640);
 		clamp(m.Y1,0,480);
 		clamp(m.Y2,0,480);
-		float c;
-		c=m.X2;
-		m.X2=m.X1;
-		m.X1=c;
 
 		for(int y=m.Y1; y<(int)m.Y2; y++)
 		{
 			int index = y*640+(int)m.X1;
 			for(int x=(int)m.X1; x<(int)m.X2; x++)
-			{
+      {
 				if((m_out_data.dots_3d[index*3+2]>m.Z1)&&
 					 (m_out_data.dots_3d[index*3+2]<m.Z2))
 				{
@@ -229,8 +261,9 @@ void ZCamProcessing::process_boxes()
 	for(int i=0;i<imax;i++)
 	{
 		SharedStruct::box m;
-		const int threshold = 50;
-    m = m_shared_scene->user_boxes[i];
+    const int threshold = 50;
+    m = boxes[i];
+
 
     switch(m.behavior)
     {
@@ -261,7 +294,7 @@ void ZCamProcessing::process_boxes()
       }
       break;
     }
-    m_shared_scene->user_boxes[i] = m;
+    boxes[i] = m;
 	}
 }
 
@@ -625,9 +658,11 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
 void ZCamProcessing::set_background_depth(float zdebug)
 {
   const float MULTIPLY_FACTOR = 0.99f;
+  short * buf;
   int i;
   uint32_t ts;
 
+  buf = new short[640*480];
 
   if (freenect_sync_get_depth((void**)&(m_out_data.depth_data), &ts, 0, FREENECT_DEPTH_11BIT) < 0)
   {
@@ -668,4 +703,24 @@ void ZCamProcessing::set_background_depth(float zdebug)
   {
     m_background_depth[i]*=MULTIPLY_FACTOR;
   }
+
+  for(int k=0;k<10;k++)
+  {
+    for(i=641;i<640*480-641;i++)
+    {
+      short v = m_background_depth[i];
+      v=min(
+            min(
+              min(v,m_background_depth[i-641]),
+              min(m_background_depth[i-640], m_background_depth[i-639])),
+            min(
+              min(m_background_depth[i-1], m_background_depth[i+1]),
+              min(m_background_depth[i+639], m_background_depth[i+640])
+              ));
+      v=min(v,m_background_depth[i+641]);
+      buf[i] = v;
+    }
+    memcpy(m_background_depth,buf,640*480*sizeof(short));
+  }
+  delete buf;
 }

@@ -228,19 +228,18 @@ void GLWidget::paintGL()
 		glScalef(1,1,4);
 		glEnable(GL_BLEND);
     int imax = m_shared_scene->user_boxes.size();
-		for(int i=0;i<imax;i++)
-		{
+    for(int i=0;i<imax;i++)
+    {
       SharedStruct::box m = m_shared_scene->user_boxes[i];
-			float x1 = m.X1;
-			float y1 = m.Y1;
-			float z1 = m.Z1;
-			float x2 = m.X2;
-			float y2 = m.Y2;
-			float z2 = m.Z2;
-			draw_box(x1,x2,y1,y2,z1,z2,(m.state!=0),1);
-		}
-
-		glPopMatrix();
+      float x1 = m.X1;
+      float y1 = m.Y1;
+      float z1 = m.Z1;
+      float x2 = m.X2;
+      float y2 = m.Y2;
+      float z2 = m.Z2;
+      draw_box(x1,x2,y1,y2,z1,z2,(m.state!=0),1);
+    }
+    glPopMatrix();
 	}
 
   {
@@ -273,13 +272,25 @@ void GLWidget::paintGL()
 
     //Draw the user volume and max volume
     SharedStruct::box b=m_shared_scene->detection_user;
-    draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,1,3);
+    //draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,1,3);
 
     //Draw the maximum volume
     b=m_shared_scene->detection_user_max;
     draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,0,6);
 
-
+    // Draw the navigation boxes
+    int imax = m_shared_scene->nav_boxes.size();
+    for(int i=0;i<imax;i++)
+    {
+      SharedStruct::box m = m_shared_scene->nav_boxes[i];
+      float x1 = m.X1;
+      float y1 = m.Y1;
+      float z1 = m.Z1;
+      float x2 = m.X2;
+      float y2 = m.Y2;
+      float z2 = m.Z2;
+      draw_box(x1,x2,y1,y2,z1,z2,(m.state!=0),1);
+    }
     glPopMatrix();
   }
 

@@ -77,7 +77,8 @@ public:
 		void set_calib(float off_x, float off_y, float scale_x, float scale_y);
 		bool m_points_rgb;
 
-		void process_boxes();
+    void process_boxes(std::vector<SharedStruct::box> &boxes,
+                       const bool rescale);
     blob process_user_volume(const float z_near, const float z_far,
                            const float x1, const float x2,
                            const float y1, const float y2);
