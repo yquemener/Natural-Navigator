@@ -45,45 +45,49 @@ MainWindow::MainWindow(QWidget *parent) :
 
 		// Load settings
 
-		m_settings = new QSettings("IV-devs", "NaturalNavigator");
-		ui->sld_offset_x->setValue(m_settings->value("calib_offset_x").toInt());
-		ui->sld_offset_y->setValue(m_settings->value("calib_offset_y").toInt());
-		ui->sld_scale_x->setValue(m_settings->value("calib_scale_x").toInt());
-		ui->sld_scale_y->setValue(m_settings->value("calib_scale_y").toInt());
-		on_calib_changed();
-		ui->sld_z_far->setValue(m_settings->value("calib_far_z").toInt());
-		ui->sld_z_near->setValue(m_settings->value("calib_near_z").toInt());
-		int size=m_settings->beginReadArray("boxes");
-		for(int i=0;i<size;i++)
-		{
-			m_settings->setArrayIndex(i);
-			float x = m_settings->value("x").toFloat();
-			float y = m_settings->value("y").toFloat();
-			float z = m_settings->value("z").toFloat();
-			float width = m_settings->value("width").toFloat();
-			float height = m_settings->value("height").toFloat();
-			float depth = m_settings->value("depth").toFloat();
-      int behav = m_settings->value("behavior").toInt();
-			SharedStruct::box b;
-			b.X1=x;
-			b.Y1=y;
-			b.Z1=z;
-			b.X2=x+width;
-			b.Y2=y+height;
-			b.Z2=z+depth;
-      b.behavior = SharedStruct::behavior_t(behav);
-      b.state = 0;
-      b.last_state = 0;
-      //b.behavior = SharedStruct::HORIZONTAL_SLIDER;
-      m_pSharedData->user_boxes.push_back(b);
-			ui->lst_boxes->addItem(QString("Box : (")	+
-														 QString::number(x)+","+
-														 QString::number(y)+","+
-														 QString::number(z)+","+
-														 QString::number(width)+","+
-														 QString::number(height)+","+
-														 QString::number(depth)+")");
-		}
+    m_settings = new QSettings("IV-devs", "NaturalNavigator");
+    if(m_settings->contains("calib_offset_x"))
+    {
+      ui->sld_offset_x->setValue(m_settings->value("calib_offset_x").toInt());
+      ui->sld_offset_y->setValue(m_settings->value("calib_offset_y").toInt());
+      ui->sld_scale_x->setValue(m_settings->value("calib_scale_x").toInt());
+      ui->sld_scale_y->setValue(m_settings->value("calib_scale_y").toInt());
+      on_calib_changed();
+      ui->sld_z_far->setValue(m_settings->value("calib_far_z").toInt());
+      ui->sld_z_near->setValue(m_settings->value("calib_near_z").toInt());
+      int size=m_settings->beginReadArray("boxes");
+      for(int i=0;i<size;i++)
+      {
+        m_settings->setArrayIndex(i);
+        float x = m_settings->value("x").toFloat();
+        float y = m_settings->value("y").toFloat();
+        float z = m_settings->value("z").toFloat();
+        float width = m_settings->value("width").toFloat();
+        float height = m_settings->value("height").toFloat();
+        float depth = m_settings->value("depth").toFloat();
+        int behav = m_settings->value("behavior").toInt();
+        SharedStruct::box b;
+        b.X1=x;
+        b.Y1=y;
+        b.Z1=z;
+        b.X2=x+width;
+        b.Y2=y+height;
+        b.Z2=z+depth;
+        b.behavior = SharedStruct::behavior_t(behav);
+        b.state = 0;
+        b.last_state = 0;
+        //b.behavior = SharedStruct::HORIZONTAL_SLIDER;
+        m_pSharedData->user_boxes.push_back(b);
+        ui->lst_boxes->addItem(QString("Box : (")	+
+                               QString::number(x)+","+
+                               QString::number(y)+","+
+                               QString::number(z)+","+
+                               QString::number(width)+","+
+                               QString::number(height)+","+
+                               QString::number(depth)+")");
+      }
+      m_settings->endArray();
+    }
     SharedStruct::box b;
     b.behavior = SharedStruct::SIMPLE_BOX;
     m_pSharedData->nav_boxes.push_back(b);
@@ -91,7 +95,6 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pSharedData->nav_boxes.push_back(b);
     m_pSharedData->nav_boxes.push_back(b);
     m_pSharedData->nav_boxes.push_back(b);
-		m_settings->endArray();
 
     m_proc.set_shared_data(m_pSharedData);
     m_gl.set_shared_data(m_pSharedData);

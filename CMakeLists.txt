@@ -19,6 +19,7 @@ include_directories (/opt/local/var/macports/software/libusb-devel/1.0.8.2010101
 include_directories (/usr/local/include/libfreenect)
 
 link_directories(/usr/local/lib64/)
+link_directories(/usr/local/lib/)
 
 
 INCLUDE_DIRECTORIES  (

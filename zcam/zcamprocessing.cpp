@@ -601,7 +601,7 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
 
           bool perimeter=false;
 
-          if((cur_i<640)||(cur_i>479*640)) continue;
+          if((cur_i<640)||(cur_i>=479*640)) continue;
 
           if((cur_i%640>x1)
               && (m_out_data.depth_data[(cur_i-1)]>zn16)
