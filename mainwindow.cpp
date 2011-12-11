@@ -286,11 +286,101 @@ void MainWindow::on_refreshVideo()
 	}
 
   // Sends UDP messages
-
-  if(m_pSharedData->nav_boxes[0].m_state!=0)
+  // strafe left
+  if(m_pSharedData->nav_boxes[1].state!=m_pSharedData->nav_boxes[1].last_state)
   {
+    QString v;
+    if(m_pSharedData->nav_boxes[1].state!=0)
+      v="1";
+    else
+      v="0";
+    this->send_max_command("46 "+v);
   }
-
+  //strafe right
+  if(m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
+  {
+    QString v;
+    if(m_pSharedData->nav_boxes[2].state!=0)
+      v="1";
+    else
+      v="0";
+    this->send_max_command("44 "+v);
+  }
+  //strafe up
+  if(m_pSharedData->nav_boxes[3].state!=m_pSharedData->nav_boxes[3].last_state)
+  {
+    QString v;
+    if(m_pSharedData->nav_boxes[3].state!=0)
+      v="1";
+    else
+      v="0";
+    this->send_max_command("39 "+v);
+  }
+  //strafe down
+  if(m_pSharedData->nav_boxes[4].state!=m_pSharedData->nav_boxes[4].last_state)
+  {
+    QString v;
+    if(m_pSharedData->nav_boxes[4].state!=0)
+      v="1";
+    else
+      v="0";
+    this->send_max_command("47 "+v);
+  }
+  //forward
+  if(m_pSharedData->nav_boxes[0].state!=m_pSharedData->nav_boxes[0].last_state)
+  {
+    QString v;
+    if(m_pSharedData->nav_boxes[0].state!=0)
+      v="1";
+    else
+      v="0";
+    this->send_max_command("30 "+v);
+  }
+  //turn
+  static bool turn_up=false;
+  static bool turn_down=false;
+  static bool turn_right=false;
+  static bool turn_left=false;
+  bool tu = false;
+  bool td = false;
+  bool tr = false;
+  bool tl = false;
+  if(m_pSharedData->nav_boxes[0].state!=0)
+  {
+    SharedStruct::box b = m_pSharedData->nav_boxes[0];
+    float centerx = (b.X1+b.X2)/2.0;
+    float centery = (b.Y1+b.Y2)/2.0;
+    if(b.xs>centerx) tr=true; else tl=true;
+    if(b.ys>centery) tu=true; else td=true;
+  }
+  if(tu!=turn_up)
+  {
+    if(tu)
+      send_max_command("29 1");
+    else
+      send_max_command("29 0");
+  }
+  if(td!=turn_down)
+  {
+    if(td)
+      send_max_command("28 1");
+    else
+      send_max_command("28 0");
+  }
+  if(tl!=turn_left)
+  {
+    if(tu)
+      send_max_command("120 1");
+    else
+      send_max_command("120 0");
+  }
+  if(tr!=turn_right)
+  {
+    if(tr)
+      send_max_command("119 1");
+    else
+      send_max_command("119 0");
+  }
 }
 
 void MainWindow::on_calib_changed()
