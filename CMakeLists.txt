@@ -18,9 +18,9 @@ include_directories(${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS} ${USB_INCLUDE_DI
 include_directories (/opt/local/var/macports/software/libusb-devel/1.0.8.20101017_1/opt/local/include/) 
 include_directories (/usr/local/include/libfreenect)
 
-link_directories(/usr/local/lib64/)
-link_directories(/usr/local/lib/)
-
+#link_directories(/usr/local/lib64/)
+#link_directories(/usr/local/lib/)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/libs)
 
 INCLUDE_DIRECTORIES  (
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -56,7 +56,7 @@ add_executable(NaturalNavigator
 	)
 
 target_link_libraries (NaturalNavigator
-	freenect_sync
+  freenect_sync
 	${QT_LIBRARIES}
 	${QT_QTNETWORK_LIBRARIES}
 	${QT_QTGUI_LIBRARIES}
