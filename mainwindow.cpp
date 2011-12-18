@@ -339,6 +339,10 @@ void MainWindow::on_refreshVideo()
       v="0";
     this->send_max_command("30 "+v);
   }
+
+  for(i=0;i<5;i++)
+    m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
+
   //turn
   static bool turn_up=false;
   static bool turn_down=false;
@@ -384,6 +388,10 @@ void MainWindow::on_refreshVideo()
     else
       send_max_command("119 0");
   }
+  turn_right=tr;
+  turn_up=tu;
+  turn_left=tl;
+  turn_down=td;
 }
 
 void MainWindow::on_calib_changed()
