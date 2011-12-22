@@ -450,6 +450,23 @@ void MainWindow::on_refreshVideo()
       }
     }
   }
+  // User presence code
+  {
+    static bool user_was_here=false;
+    bool user_is_here;
+    if(m_pSharedData->detection_user_max.X1>m_pSharedData->detection_user_max.X2)
+      user_is_here=false;
+    else
+      user_is_here=true;
+    if(user_was_here!=user_is_here)
+    {
+      if(user_is_here)
+        send_max_command("40 1");
+      else
+        send_max_command("40 0");
+    }
+    user_was_here=user_is_here;
+  }
 
 }
 
