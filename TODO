@@ -1,0 +1,46 @@
+V- Virer ortho/persp
+V- Virer le log de debug
+V- renommer MainWindow
+ - mettre des params par defaut corrects
+V- ajouter un code UDP aux boites
+V- turn analogique (0 à 1.00)
+V- virer grab threshold
+V- reset des vues 3D
+ - bug de sauvegarde de params sur mac ?
+V- champ IP/port
+V- code pour le roll (rot Z)
+R- code présence utilisateur 
+	code 40, NB:il est envoyé à la fin de tous les messages
+X- translation -Z -> pas sur que ce soit une bonne idée sans le track de tête
+
+optional:
+ - scale problem between rgb and depth
+
+
+
+
+
+Concernant la rotation sur Z, 'il faut m'envoyer le code une valeur en degrés:
+- les deux bras à l'horizontale = 0.
+- rotation sur Z, à gauche = degrés positif. Exemple: bras gauche tout
+à fait en bas à la verticale et bras droit tout à fait en haut
+vertical = 90°)
+et par opposition rotation sur Z à droite = degrés négatifs (bras
+droit en bas et bras gauche en haut verticalement).
+
+Pas besoin d'envoyer continuellement une valeur qui ne change pas. En
+revanche je me pose la question de la résolution: en dixièmes voire
+centièmes de degrés serait pas mal, est-ce possible? Car en
+incrémentant de degré en degré j'ai des saccades, inévitablement.
+
+
+
+On a aussi parlé de la translation -Z en reculant: cela ne pose-t-il
+pas des problème? Si on recule on n'a plus accès aux boites qui sont
+devant? Comment régler ce problème.
+
+Il me faut aussi un code spécifique suivi de 1 ou 0, qui indique qu'il
+y a un utilisateur ou non.
+
+
+
