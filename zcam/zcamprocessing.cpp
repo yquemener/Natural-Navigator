@@ -249,9 +249,9 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
 					 (m_out_data.dots_3d[index*3+2]<m.Z2))
 				{
 					result[i]++;
-          m.xs+=x;
-          m.ys+=y;
-          m.zs+=m_out_data.dots_3d[index*3+2];
+          boxes[i].xs+=x;
+          boxes[i].ys+=y;
+          boxes[i].zs+=m_out_data.dots_3d[index*3+2];
 				}
 				index++;
 			}
@@ -259,9 +259,9 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
     const int threshold = 50;
     if(result[i]>0)
     {
-      m.xs/=result[i];
-      m.ys/=result[i];
-      m.zs/=result[i];
+      boxes[i].xs/=result[i];
+      boxes[i].ys/=result[i];
+      boxes[i].zs/=result[i];
     }
 
     switch(m.behavior)
@@ -282,7 +282,7 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
         if(m.last_state<threshold)
           m.state = 1-m.state;
       }
-      m.last_state = result[i];
+      boxes[i].last_state = result[i];
       break;
     case(SharedStruct::HORIZONTAL_SLIDER):
       if(result[i]>threshold)
@@ -319,7 +319,8 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
       }
       break;
     }
-    boxes[i] = m;
+
+    boxes[i].state = m.state;
 	}
 }
 
@@ -748,4 +749,17 @@ void ZCamProcessing::set_background_depth(float zdebug)
     memcpy(m_background_depth,buf,640*480*sizeof(short));
   }
   delete buf;
+}
+
+
+void ZCamProcessing::clear_background_depth()
+{
+  if(m_background_depth==0)
+  {
+    m_background_depth = new short[sizeof(short)*640*480];
+    m_out_data.background_depth = m_background_depth;
+  }
+  const short val = std::numeric_limits<short>::max();
+  for(int i=0;i<640*480;i++)
+    m_background_depth[i]=val;
 }

@@ -354,6 +354,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="but_reset_background_depth">
+          <property name="text">
+           <string>Reset Background depth</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QLabel" name="lbl_z_near">
           <property name="text">
            <string>Z near</string>
@@ -655,7 +662,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="edt_box_width_2">
+           <widget class="QLineEdit" name="edt_box_udp_code">
             <property name="text">
              <string>0</string>
             </property>

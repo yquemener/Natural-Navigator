@@ -88,6 +88,7 @@ public:
                        std::vector<blob>& results);
     void set_shared_data(SharedStruct::scene * sd) { m_shared_scene = sd; }
     void set_background_depth(float);
+    void clear_background_depth();
 
 		float m_grab_threshold;
 };

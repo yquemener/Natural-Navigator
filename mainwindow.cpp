@@ -5,7 +5,7 @@
 #include "math.h"
 #include <QTime>
 #include "usleep.h"
-
+#include <QNetworkInterface>
 
 const int SIZEX = 8;
 const int SIZEY = 4;
@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	m_udpSocket = new QUdpSocket(this);
   m_destAddress.setAddress("127.0.0.1");
   m_UdpPort = 7474;
-  m_udpSocket->bind(QHostAddress("127.0.0.1"), 7475);
+  //m_udpSocket->bind(QHostAddress("127.0.0.1"), 7475);
 
 
 	// initialize the shared scene
@@ -67,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent) :
         float height = m_settings->value("height").toFloat();
         float depth = m_settings->value("depth").toFloat();
         int behav = m_settings->value("behavior").toInt();
+        int udp_code = m_settings->value("udp_code").toInt();
         SharedStruct::box b;
         b.X1=x;
         b.Y1=y;
@@ -77,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
         b.behavior = SharedStruct::behavior_t(behav);
         b.state = 0;
         b.last_state = 0;
+        b.udp_code = udp_code;
         //b.behavior = SharedStruct::HORIZONTAL_SLIDER;
         m_pSharedData->user_boxes.push_back(b);
         ui->lst_boxes->addItem(QString("Box : (")	+
@@ -85,7 +87,8 @@ MainWindow::MainWindow(QWidget *parent) :
                                QString::number(z)+","+
                                QString::number(width)+","+
                                QString::number(height)+","+
-                               QString::number(depth)+")");
+                               QString::number(depth)+", code:"+
+                               QString::number(udp_code)+")");
       }
       m_settings->endArray();
     }
@@ -139,6 +142,7 @@ MainWindow::~MainWindow()
 		m_settings->setValue("height", QString::number(b.Y2-b.Y1));
 		m_settings->setValue("depth", QString::number(b.Z2-b.Z1));
     m_settings->setValue("behavior", QString::number(b.behavior));
+    m_settings->setValue("udp_code", QString::number(b.udp_code));
 	}
 	m_settings->endArray();
 
@@ -148,6 +152,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_refreshVideo()
 {
+  int i;
 	// Polls different settings
 
 	m_gl.m_background_video_type = VIDEO_TYPE_NONE;
@@ -161,8 +166,10 @@ void MainWindow::on_refreshVideo()
 		m_gl.m_background_video_type = VIDEO_TYPE_NONE;
 
   m_gl.m_dots_visible = ui->chk_dots_visible->isChecked();
+  m_gl_top_view.m_dots_visible = ui->chk_dots_visible->isChecked();
   m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
-	m_gl.m_boxes_visible = ui->chk_boxes->isChecked();		// AHA
+  m_gl.m_boxes_visible = ui->chk_boxes->isChecked();
+  m_gl_top_view.m_boxes_visible = ui->chk_boxes->isChecked();
 
 	// Processing
 
@@ -171,6 +178,22 @@ void MainWindow::on_refreshVideo()
   m_proc.update();
   m_proc.process_boxes(m_pSharedData->user_boxes, true);
 
+  for(i=0;i<m_pSharedData->user_boxes.size();i++)
+  {
+    if(m_pSharedData->user_boxes[i].state !=
+       m_pSharedData->user_boxes[i].last_state)
+    {
+      QString msg=QString::number(m_pSharedData->user_boxes[i].udp_code);
+      msg+=" ";
+      if(m_pSharedData->user_boxes[i].state!=0)
+        msg+=QString::number(m_pSharedData->user_boxes[i].state);
+      else
+        msg+="0";
+      //send_max_command(+" "+val);
+      send_max_command(msg);
+      m_pSharedData->user_boxes[i].last_state = m_pSharedData->user_boxes[i].state;
+    }
+  }
 
 
   //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
@@ -263,7 +286,7 @@ void MainWindow::on_refreshVideo()
   }
 	// Copying ZCamProcessing results into the GLWidget
   //m_gl.m_blobs.clear();
-	for(int i=0;i<bres.size();i++)
+  for(i=0;i<bres.size();i++)
 	{
 		m_gl.m_blobs.push_back(bres[i].cx);
 		m_gl.m_blobs.push_back(bres[i].cy);
@@ -340,7 +363,6 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("30 "+v);
   }
 
-  int i;
   for(i=0;i<5;i++)
     m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
 
@@ -472,6 +494,7 @@ void MainWindow::on_but_add_clicked()
 	m.Z2 = z + d;
 	m.state = 0;
   m.behavior = (SharedStruct::behavior_t)ui->cmb_box_type->currentIndex();
+  m.udp_code = ui->edt_box_udp_code->text().toInt();
   m_pSharedData->user_boxes.push_back(m);
 
 	ui->lst_boxes->addItem(QString("Box : (")	+
@@ -479,8 +502,9 @@ void MainWindow::on_but_add_clicked()
 												 QString::number(y)+","+
 												 QString::number(z)+","+
 												 QString::number(w)+","+
-												 QString::number(h)+","+
-												 QString::number(d)+")");
+                         QString::number(h)+","+
+                         QString::number(d)+", code:"+
+                         QString::number(m.udp_code)+")");
 }
 
 void MainWindow::on_lst_boxes_itemSelectionChanged()
@@ -500,7 +524,7 @@ void MainWindow::on_grab_threshold_valueChanged(int value)
 
 void MainWindow::on_pushButton_clicked()
 {
-		if(ui->lst_boxes->selectedItems().count()==0) return;
+    if(ui->lst_boxes->selectedItems().count()==0) return;
 		int i = ui->lst_boxes->row(ui->lst_boxes->selectedItems()[0]);
 		ui->lst_boxes->takeItem(i);
     m_pSharedData->user_boxes.erase(m_pSharedData->user_boxes.begin()+i);
@@ -513,9 +537,10 @@ void MainWindow::on_lst_boxes_currentRowChanged(int currentRow)
 	ui->edt_box_x->setText(QString::number(m.X1));
 	ui->edt_box_y->setText(QString::number(m.Y1));
 	ui->edt_box_z->setText(QString::number(m.Z1));
-	ui->edt_box_width->setText(QString::number(m.X2-m.X1));
+  ui->edt_box_width->setText(QString::number(m.X2-m.X1));
 	ui->edt_box_height->setText(QString::number(m.Y2-m.Y1));
 	ui->edt_box_depth->setText(QString::number(m.Z2-m.Z1));
+  ui->edt_box_udp_code->setText(QString::number(m.udp_code));
   ui->cmb_box_type->setCurrentIndex((int)m.behavior);
 
 }
@@ -540,10 +565,7 @@ void MainWindow::on_sld_depth_boxes_actionTriggered(int action)
 
 void MainWindow::on_sld_depth_boxes_sliderMoved(int position)
 {
-  for(int i=0; i< m_pSharedData->user_boxes.size(); i++)
-	{
-   m_pSharedData->user_boxes[i].Z2 = position;
-	}
+
 }
 
 void MainWindow::on_ui_visible_clicked()
@@ -576,7 +598,24 @@ void MainWindow::on_but_background_depth_clicked()
 void MainWindow::on_edt_ipadr_editingFinished()
 {
   m_destAddress.setAddress(this->ui->edt_ipadr->text());
-  m_UdpPort = this->ui->edt_port->text().toInt();
+
+  quint32 netmask1,netmask2;
+
+  foreach(QNetworkInterface nwi, QNetworkInterface::allInterfaces())
+  {
+    foreach(QNetworkAddressEntry addr, nwi.addressEntries())
+    {
+      QString dbg1,dbg2;
+      int dbg3 = addr.prefixLength();
+      netmask1 = m_destAddress.toIPv4Address() >> (32-addr.prefixLength());
+      netmask2 = addr.ip().toIPv4Address() >> (32-addr.prefixLength());
+      dbg1 = m_destAddress.toString();
+      dbg2 = addr.ip().toString();
+      /*if(netmask1 == netmask2)
+        m_udpSocket->bind(addr.ip(), 7575);*/
+
+    }
+  }
 }
 
 void MainWindow::on_but_view_reset_clicked()
@@ -604,4 +643,14 @@ void MainWindow::on_but_view_reset_clicked()
   m_gl.m_blobs_visible = true;
   m_gl.m_viewer_distance=0.0;
 
+}
+
+void MainWindow::on_edt_port_editingFinished()
+{
+  m_UdpPort = this->ui->edt_port->text().toInt();
+}
+
+void MainWindow::on_but_reset_background_depth_clicked()
+{
+  m_proc.clear_background_depth();
 }

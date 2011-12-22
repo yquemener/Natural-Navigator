@@ -17,6 +17,7 @@ typedef struct {
   int last_state;
   int xs,ys,zs;
   behavior_t behavior;
+  int udp_code;
 } box;
 
 typedef struct {

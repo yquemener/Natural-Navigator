@@ -64,6 +64,8 @@ private slots:
   void on_but_background_depth_clicked();
   void on_edt_ipadr_editingFinished();
   void on_but_view_reset_clicked();
+  void on_edt_port_editingFinished();
+  void on_but_reset_background_depth_clicked();
 };
 
 
