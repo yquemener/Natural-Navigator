@@ -23,6 +23,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
 	m_udpSocket = new QUdpSocket(this);
+  m_destAddress.setAddress("127.0.0.1");
+  m_UdpPort = 7474;
   m_udpSocket->bind(QHostAddress("127.0.0.1"), 7475);
 
 
@@ -39,7 +41,6 @@ MainWindow::MainWindow(QWidget *parent) :
 		connect(ui->sld_scale_y, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
 		connect(ui->sld_z_far, SIGNAL(valueChanged(int)), this, SLOT(on_sld_z_far_valueChanged(int)));
 		connect(ui->sld_z_near, SIGNAL(valueChanged(int)), this, SLOT(on_sld_z_near_valueChanged(int)));
-		connect(ui->sld_grab_threshold, SIGNAL(valueChanged(int)), this, SLOT(on_grab_threshold_valueChanged(int)));
 		//connect(m_gl, SIGNAL(mouse))
     m_clock.start(10.2);
 
@@ -158,10 +159,6 @@ void MainWindow::on_refreshVideo()
 		m_gl.m_background_video_type = VIDEO_TYPE_DEBUG;
 	if(ui->rad_none->isChecked())
 		m_gl.m_background_video_type = VIDEO_TYPE_NONE;
-	if(ui->rad_ortho->isChecked())
-    m_gl.m_perspective = false;
-	if(ui->rad_perspective->isChecked())
-		m_gl.m_perspective = true;
 
   m_gl.m_dots_visible = ui->chk_dots_visible->isChecked();
   m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
@@ -195,8 +192,7 @@ void MainWindow::on_refreshVideo()
 							"perimeter :"+QString::number(b.perimeter)+"\n"+
 							"grab measure :"+QString::number((b.area/sqr(b.perimeter)))+"\n";
 
-	ui->txt_log->setText(s);
-	//qDebug("%d %f %f %d", bres.size(), bres[bres.size()-1].cx, bres[bres.size()-1].cy, bres[bres.size()-1].x1);
+  //qDebug("%d %f %f %d", bres.size(), bres[bres.size()-1].cx, bres[bres.size()-1].cy, bres[bres.size()-1].x1);
 
   {
   /** Make 5 navigator boxes accordingly :
@@ -340,6 +336,7 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("30 "+v);
   }
 
+  int i;
   for(i=0;i<5;i++)
     m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
 
@@ -494,10 +491,6 @@ void MainWindow::on_sld_z_near_sliderMoved(int position)
 
 void MainWindow::on_grab_threshold_valueChanged(int value)
 {
-	//float v = value/100.0;
-	ui->lbl_grab_threshold->setText(QString("Grab threshold : ") +
-																	QString::number(value));
-  m_proc.m_grab_threshold = value;
 }
 
 
@@ -532,7 +525,7 @@ void MainWindow::send_max_command(QString msg)
 {
 	QByteArray a;
 	a.append(msg);
-	m_udpSocket->writeDatagram(a, QHostAddress("127.0.0.1"), 7474);
+  m_udpSocket->writeDatagram(a, m_destAddress, m_UdpPort);
 	m_udpSocket->flush();
 }
 
@@ -574,4 +567,37 @@ void MainWindow::on_sld_left_margin_valueChanged(int value)
 void MainWindow::on_but_background_depth_clicked()
 {
   m_proc.set_background_depth(m_z_near);
+}
+
+void MainWindow::on_edt_ipadr_editingFinished()
+{
+  m_destAddress.setAddress(this->ui->edt_ipadr->text());
+  m_UdpPort = this->ui->edt_port->text().toInt();
+}
+
+void MainWindow::on_but_view_reset_clicked()
+{
+  m_gl_top_view.m_global_rot_x=-13;
+  m_gl_top_view.m_global_rot_y=54;
+  m_gl_top_view.m_global_rot_z = 0.0;
+  m_gl_top_view.m_look_at_x = 320;
+  m_gl_top_view.m_look_at_y = 240;
+  m_gl_top_view.m_look_at_z = 500;
+  m_gl_top_view.m_perspective=true;
+  m_gl_top_view.m_boxes_visible = true;
+  m_gl_top_view.m_dots_visible=true;
+  m_gl_top_view.m_background_video_type = VIDEO_TYPE_NONE;
+  m_gl_top_view.m_viewer_distance=-100;
+
+  m_gl.m_global_rot_x = 0.0;
+  m_gl.m_global_rot_y = 0.0;
+  m_gl.m_global_rot_z = 0.0;
+  m_gl.m_look_at_x = 320;
+  m_gl.m_look_at_y = 240;
+  m_gl.m_look_at_z = 500;
+  m_gl.m_perspective = false;
+  m_gl.m_boxes_visible = false;
+  m_gl.m_blobs_visible = true;
+  m_gl.m_viewer_distance=0.0;
+
 }

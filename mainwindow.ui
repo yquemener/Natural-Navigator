@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Navigateur cinématique</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -68,7 +68,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_display">
        <attribute name="title">
@@ -155,39 +155,20 @@
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_2">
-          <property name="title">
-           <string>Projection</string>
+         <widget class="QPushButton" name="but_deactivate_display">
+          <property name="text">
+           <string>Désactiver l'affichage</string>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_6">
-           <item>
-            <widget class="QRadioButton" name="rad_ortho">
-             <property name="text">
-              <string>Ortho</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="rad_perspective">
-             <property name="text">
-              <string>Perspective</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="but_deactivate_display">
-             <property name="text">
-              <string>Désactiver l'affichage</string>
-             </property>
-             <property name="checkable">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="but_view_reset">
+          <property name="text">
+           <string>Réinitialisation des vues</string>
+          </property>
          </widget>
         </item>
         <item>
@@ -196,9 +177,6 @@
            <enum>Qt::Horizontal</enum>
           </property>
          </widget>
-        </item>
-        <item>
-         <widget class="QTextEdit" name="txt_log"/>
         </item>
         <item>
          <spacer name="verticalSpacer_2">
@@ -356,13 +334,6 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="but_background_depth">
-          <property name="text">
-           <string>Set Background depth</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <spacer name="verticalSpacer_3">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -376,19 +347,9 @@
          </spacer>
         </item>
         <item>
-         <widget class="QLabel" name="lbl_grab_threshold">
+         <widget class="QPushButton" name="but_background_depth">
           <property name="text">
-           <string>grab threshold</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QSlider" name="sld_grab_threshold">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <string>Set Background depth</string>
           </property>
          </widget>
         </item>
@@ -452,6 +413,55 @@
            <enum>Qt::Horizontal</enum>
           </property>
          </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_9">
+          <item>
+           <widget class="QLabel" name="label_1">
+            <property name="text">
+             <string>Addresse IP</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="edt_ipadr">
+            <property name="text">
+             <string>127.0.0.1</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_10">
+          <item>
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Port UDP</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="edt_port">
+            <property name="text">
+             <string>7474</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -630,6 +640,24 @@
            <widget class="QLineEdit" name="edt_box_depth">
             <property name="text">
              <string>40</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_11">
+          <item>
+           <widget class="QLabel" name="label_6">
+            <property name="text">
+             <string>code UDP</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="edt_box_width_2">
+            <property name="text">
+             <string>0</string>
             </property>
            </widget>
           </item>

@@ -31,6 +31,8 @@ private:
 		QTimer m_clock;
 		QSettings * m_settings;
 		QUdpSocket * m_udpSocket;
+    QHostAddress m_destAddress;
+    int m_UdpPort;
 
 		float m_z_near, m_z_far;
 
@@ -53,13 +55,15 @@ private slots:
 	void on_chk_boxes_clicked();
 	void on_rad_perspective_clicked();
 	void on_rad_ortho_clicked();
+  void on_grab_threshold_valueChanged(int value);
 	void on_sld_z_far_valueChanged(int value);
 	void on_sld_z_near_valueChanged(int value);
-	void on_grab_threshold_valueChanged(int value);
 	void on_refreshVideo();
 	void on_calib_changed();
 	void send_max_command(QString msg);
   void on_but_background_depth_clicked();
+  void on_edt_ipadr_editingFinished();
+  void on_but_view_reset_clicked();
 };
 
 
