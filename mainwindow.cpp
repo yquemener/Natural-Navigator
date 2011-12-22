@@ -99,9 +99,11 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pSharedData->nav_boxes.push_back(b);
     m_pSharedData->nav_boxes.push_back(b);
     m_pSharedData->nav_boxes.push_back(b);
+    m_pSharedData->nav_boxes.push_back(b);
 
     m_proc.set_shared_data(m_pSharedData);
     m_gl.set_shared_data(m_pSharedData);
+    m_gl.m_dots_visible=false;
     m_gl.m_proc = &m_proc;
 
     m_gl_top_view.m_proc = &m_proc;
@@ -165,7 +167,6 @@ void MainWindow::on_refreshVideo()
 	if(ui->rad_none->isChecked())
 		m_gl.m_background_video_type = VIDEO_TYPE_NONE;
 
-  m_gl.m_dots_visible = ui->chk_dots_visible->isChecked();
   m_gl_top_view.m_dots_visible = ui->chk_dots_visible->isChecked();
   m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
   m_gl.m_boxes_visible = ui->chk_boxes->isChecked();
@@ -232,7 +233,8 @@ void MainWindow::on_refreshVideo()
         m_pSharedData->detection_user_max.Z2 - m_pSharedData->detection_user_max.Z1;
     m_pSharedData->nav_boxes[0].Z2 =
          m_pSharedData->detection_user_max.Z2 - 0.66*dZ;
-    m_pSharedData->nav_boxes[0].Z1 = m_pSharedData->detection_user_max.Z1;
+    m_pSharedData->nav_boxes[0].Z1 =
+         m_pSharedData->detection_user_max.Z2 - 0.83*dZ;
     m_pSharedData->nav_boxes[0].X1 = dX*0.16+m_pSharedData->detection_user_max.X1;
     m_pSharedData->nav_boxes[0].X2 = dX*0.84+m_pSharedData->detection_user_max.X1;
     m_pSharedData->nav_boxes[0].Y1 = dY*0.16+m_pSharedData->detection_user_max.Y1;
@@ -280,6 +282,11 @@ void MainWindow::on_refreshVideo()
     newb.zs = m_pSharedData->nav_boxes[4].zs;
     newb.last_state = m_pSharedData->nav_boxes[4].last_state;
     m_pSharedData->nav_boxes[4] = newb;
+    // forward
+    forwardb.Z2=forwardb.Z1;
+    forwardb.Z1=m_pSharedData->detection_user_max.Z1;
+    forwardb.last_state = m_pSharedData->nav_boxes[5].last_state;
+    m_pSharedData->nav_boxes[5] = forwardb;
 
 
     m_proc.process_boxes(m_pSharedData->nav_boxes, false);
@@ -305,9 +312,9 @@ void MainWindow::on_refreshVideo()
     m_gl.repaint();
 
     m_gl_top_view.makeCurrent();
-    m_gl_top_view.loadVideoTexture(m_proc.get_data().rgb_data);
+    /*m_gl_top_view.loadVideoTexture(m_proc.get_data().rgb_data);
     m_gl_top_view.loadDebugTexture(m_proc.get_data().dbg_data);
-    m_gl_top_view.loadDepthTexture(m_proc.get_data().depth_data);
+    m_gl_top_view.loadDepthTexture(m_proc.get_data().depth_data);*/
     m_gl_top_view.repaint();
 	}
 
@@ -353,10 +360,10 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("47 "+v);
   }
   //forward
-  if(m_pSharedData->nav_boxes[0].state!=m_pSharedData->nav_boxes[0].last_state)
+  if(m_pSharedData->nav_boxes[5].state!=m_pSharedData->nav_boxes[5].last_state)
   {
     QString v;
-    if(m_pSharedData->nav_boxes[0].state!=0)
+    if(m_pSharedData->nav_boxes[5].state!=0)
       v="1";
     else
       v="0";
@@ -375,39 +382,45 @@ void MainWindow::on_refreshVideo()
   bool td = false;
   bool tr = false;
   bool tl = false;
+  QString xval;
+  QString yval;
   if(m_pSharedData->nav_boxes[0].state!=0)
   {
     SharedStruct::box b = m_pSharedData->nav_boxes[0];
     float centerx = (b.X1+b.X2)/2.0;
     float centery = (b.Y1+b.Y2)/2.0;
+    float normx = 2.0*abs((b.xs-centerx)/(b.X1-b.X2));
+    float normy = 2.0*abs((b.ys-centery)/(b.Y1-b.Y2));
+    xval = QString::number(normx, 'f', 2);
+    yval = QString::number(normy, 'f', 2);
     if(b.xs>centerx) tr=true; else tl=true;
     if(b.ys>centery) tu=true; else td=true;
   }
   if(tu!=turn_up)
   {
     if(tu)
-      send_max_command("29 1");
+      send_max_command("29 "+yval);
     else
       send_max_command("29 0");
   }
   if(td!=turn_down)
   {
     if(td)
-      send_max_command("28 1");
+      send_max_command("28 "+yval);
     else
       send_max_command("28 0");
   }
   if(tl!=turn_left)
   {
     if(tu)
-      send_max_command("120 1");
+      send_max_command("120 "+xval);
     else
       send_max_command("120 0");
   }
   if(tr!=turn_right)
   {
     if(tr)
-      send_max_command("119 1");
+      send_max_command("119 "+xval);
     else
       send_max_command("119 0");
   }
