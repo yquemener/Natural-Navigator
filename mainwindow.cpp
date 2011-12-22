@@ -200,21 +200,21 @@ void MainWindow::on_refreshVideo()
     * 1,2,3,4 : respectively strafe left, right, up and down
     */
     SharedStruct::box forwardb;
-    forwardb.behavior = SharedStruct::SIMPLE_BOX;
+    m_pSharedData->nav_boxes[0].behavior = SharedStruct::SIMPLE_BOX;
     float dX =
         m_pSharedData->detection_user_max.X2-m_pSharedData->detection_user_max.X1;
     float dY =
         m_pSharedData->detection_user_max.Y2-m_pSharedData->detection_user_max.Y1;
     float dZ =
         m_pSharedData->detection_user_max.Z2 - m_pSharedData->detection_user_max.Z1;
-    forwardb.Z2 =
+    m_pSharedData->nav_boxes[0].Z2 =
          m_pSharedData->detection_user_max.Z2 - 0.66*dZ;
-    forwardb.Z1 = m_pSharedData->detection_user_max.Z1;
-    forwardb.X1 = dX*0.16+m_pSharedData->detection_user_max.X1;
-    forwardb.X2 = dX*0.84+m_pSharedData->detection_user_max.X1;
-    forwardb.Y1 = dY*0.16+m_pSharedData->detection_user_max.Y1;
-    forwardb.Y2 = dY*0.84+m_pSharedData->detection_user_max.Y1;
-    m_pSharedData->nav_boxes[0] = forwardb;
+    m_pSharedData->nav_boxes[0].Z1 = m_pSharedData->detection_user_max.Z1;
+    m_pSharedData->nav_boxes[0].X1 = dX*0.16+m_pSharedData->detection_user_max.X1;
+    m_pSharedData->nav_boxes[0].X2 = dX*0.84+m_pSharedData->detection_user_max.X1;
+    m_pSharedData->nav_boxes[0].Y1 = dY*0.16+m_pSharedData->detection_user_max.Y1;
+    m_pSharedData->nav_boxes[0].Y2 = dY*0.84+m_pSharedData->detection_user_max.Y1;
+    forwardb = m_pSharedData->nav_boxes[0];
 
     SharedStruct::box newb; // Left strafe
     newb.behavior = SharedStruct::SIMPLE_BOX;
@@ -227,6 +227,7 @@ void MainWindow::on_refreshVideo()
     newb.xs = m_pSharedData->nav_boxes[1].xs;
     newb.ys = m_pSharedData->nav_boxes[1].ys;
     newb.zs = m_pSharedData->nav_boxes[1].zs;
+    newb.last_state = m_pSharedData->nav_boxes[1].last_state;
     m_pSharedData->nav_boxes[1] = newb;
     // Right strafe
     newb.X1 = forwardb.X2;
@@ -234,6 +235,7 @@ void MainWindow::on_refreshVideo()
     newb.xs = m_pSharedData->nav_boxes[2].xs;
     newb.ys = m_pSharedData->nav_boxes[2].ys;
     newb.zs = m_pSharedData->nav_boxes[2].zs;
+    newb.last_state = m_pSharedData->nav_boxes[2].last_state;
     m_pSharedData->nav_boxes[2] = newb;
     // up strafe
     newb.X1 = m_pSharedData->detection_user_max.X1;
@@ -243,6 +245,7 @@ void MainWindow::on_refreshVideo()
     newb.xs = m_pSharedData->nav_boxes[3].xs;
     newb.ys = m_pSharedData->nav_boxes[3].ys;
     newb.zs = m_pSharedData->nav_boxes[3].zs;
+    newb.last_state = m_pSharedData->nav_boxes[3].last_state;
     m_pSharedData->nav_boxes[3] = newb;
     // down strafe
     newb.Z1 = m_pSharedData->detection_user_max.Z1;
@@ -252,6 +255,7 @@ void MainWindow::on_refreshVideo()
     newb.xs = m_pSharedData->nav_boxes[4].xs;
     newb.ys = m_pSharedData->nav_boxes[4].ys;
     newb.zs = m_pSharedData->nav_boxes[4].zs;
+    newb.last_state = m_pSharedData->nav_boxes[4].last_state;
     m_pSharedData->nav_boxes[4] = newb;
 
 
@@ -293,7 +297,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("46 "+v);
+    this->send_max_command("44 "+v);
   }
   //strafe right
   if(m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
@@ -303,7 +307,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("44 "+v);
+    this->send_max_command("46 "+v);
   }
   //strafe up
   if(m_pSharedData->nav_boxes[3].state!=m_pSharedData->nav_boxes[3].last_state)
