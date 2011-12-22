@@ -188,14 +188,14 @@ void GLWidget::paintGL()
 
 		glColor3f(1.0,1.0,1.0);
 		glTranslatef(0,0,800);
+    glDisable(GL_DEPTH);
 		glBegin(GL_QUADS);
-		glTexCoord2f( 0.0f, 1.0f ); glVertex3f(  0, 480, 0.0f );
-		glTexCoord2f( 0.0f, 0.0f ); glVertex3f(  0, 0, 0.0f );
-		glTexCoord2f( 1.0f, 0.0f ); glVertex3f(  640, 0, 0.0f );
-		glTexCoord2f( 1.0f, 1.0f ); glVertex3f(  640, 480, 0.0f );
-
-
+    glTexCoord2f( 0.0f, 1.0f ); glVertex3f(  0, 480, 1024.0f );
+    glTexCoord2f( 0.0f, 0.0f ); glVertex3f(  0, 0, 1024.0f );
+    glTexCoord2f( 1.0f, 0.0f ); glVertex3f(  640, 0, 1024.0f );
+    glTexCoord2f( 1.0f, 1.0f ); glVertex3f(  640, 480, 1024.0f );
 		glEnd( );
+    glEnable(GL_DEPTH);
 	}
 
 	glPopMatrix();

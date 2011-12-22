@@ -370,7 +370,7 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("30 "+v);
   }
 
-  for(i=0;i<5;i++)
+  for(i=0;i<6;i++)
     m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
 
   //turn
@@ -428,6 +428,29 @@ void MainWindow::on_refreshVideo()
   turn_up=tu;
   turn_left=tl;
   turn_down=td;
+  // roll
+  {
+    SharedStruct::box b1,b2;
+    b1 = m_pSharedData->nav_boxes[1];
+    b2 = m_pSharedData->nav_boxes[2];
+    if((b1.state!=0)&&(b2.state!=0))
+    {
+      float dx = abs(b1.xs-b2.xs);
+      float dy = (b1.ys - b2.ys); // invert here to invert the value of the roll
+      float alpha = atan2(dy,dx);
+      if(alpha==alpha)            // checking for NaN
+      {
+        QString cmd;
+        if(alpha>0)
+          cmd = "100 ";
+        else
+          cmd = "97 ";
+        cmd+=QString::number(fabs(alpha*180.0/M_PI), 'f',2);
+        send_max_command(cmd);
+      }
+    }
+  }
+
 }
 
 void MainWindow::on_calib_changed()
