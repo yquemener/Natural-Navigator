@@ -396,34 +396,37 @@ void MainWindow::on_refreshVideo()
     if(b.xs>centerx) tr=true; else tl=true;
     if(b.ys>centery) tu=true; else td=true;
   }
-  if(tu!=turn_up)
+  if(tu)
+    send_max_command("29 "+yval);
+  else
   {
-    if(tu)
-      send_max_command("29 "+yval);
-    else
+    if(tu!=turn_up)
+    {
       send_max_command("29 0");
+    }
   }
-  if(td!=turn_down)
-  {
-    if(td)
-      send_max_command("28 "+yval);
-    else
+
+  if(td)
+    send_max_command("28 "+yval);
+  else
+    if(td!=turn_down)
+    {
       send_max_command("28 0");
-  }
-  if(tl!=turn_left)
-  {
-    if(tu)
-      send_max_command("120 "+xval);
-    else
+    }
+  if(tu)
+    send_max_command("120 "+xval);
+  else
+    if(tl!=turn_left)
+    {
       send_max_command("120 0");
-  }
-  if(tr!=turn_right)
-  {
-    if(tr)
-      send_max_command("119 "+xval);
-    else
+    }
+  if(tr)
+    send_max_command("119 "+xval);
+  else
+    if(tr!=turn_right)
+    {
       send_max_command("119 0");
-  }
+    }
   turn_right=tr;
   turn_up=tu;
   turn_left=tl;
