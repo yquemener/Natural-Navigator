@@ -389,8 +389,8 @@ void MainWindow::on_refreshVideo()
     SharedStruct::box b = m_pSharedData->nav_boxes[0];
     float centerx = (b.X1+b.X2)/2.0;
     float centery = (b.Y1+b.Y2)/2.0;
-    float normx = 2.0*abs((b.xs-centerx)/(b.X1-b.X2));
-    float normy = 2.0*abs((b.ys-centery)/(b.Y1-b.Y2));
+    float normx = 2.0*fabs((b.xs-centerx)/(b.X1-b.X2));
+    float normy = 2.0*fabs((b.ys-centery)/(b.Y1-b.Y2));
     xval = QString::number(normx, 'f', 2);
     yval = QString::number(normy, 'f', 2);
     if(b.xs>centerx) tr=true; else tl=true;
