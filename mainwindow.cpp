@@ -413,13 +413,15 @@ void MainWindow::on_refreshVideo()
     {
       send_max_command("28 0");
     }
-  if(tu)
+
+  if(tl)
     send_max_command("120 "+xval);
   else
     if(tl!=turn_left)
     {
       send_max_command("120 0");
     }
+
   if(tr)
     send_max_command("119 "+xval);
   else
