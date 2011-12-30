@@ -238,7 +238,7 @@ void MainWindow::on_refreshVideo()
          m_pSharedData->detection_user_max.Z2 - 0.83*dZ;
     m_pSharedData->nav_boxes[0].X1 = dX*0.16+m_pSharedData->detection_user_max.X1;
     m_pSharedData->nav_boxes[0].X2 = dX*0.84+m_pSharedData->detection_user_max.X1;
-    m_pSharedData->nav_boxes[0].Y1 = dY*0.16+m_pSharedData->detection_user_max.Y1;
+    m_pSharedData->nav_boxes[0].Y1 = dY*0.38+m_pSharedData->detection_user_max.Y1;
     m_pSharedData->nav_boxes[0].Y2 = dY*0.84+m_pSharedData->detection_user_max.Y1;
     forwardb = m_pSharedData->nav_boxes[0];
 
@@ -267,7 +267,7 @@ void MainWindow::on_refreshVideo()
     newb.X1 = m_pSharedData->detection_user_max.X1;
     newb.X2 = m_pSharedData->detection_user_max.X2;
     newb.Y1 = m_pSharedData->detection_user_max.Y1;
-    newb.Y2 = forwardb.Y1;
+    newb.Y2 = dY*0.16+m_pSharedData->detection_user_max.Y1;;
     newb.xs = m_pSharedData->nav_boxes[3].xs;
     newb.ys = m_pSharedData->nav_boxes[3].ys;
     newb.zs = m_pSharedData->nav_boxes[3].zs;
