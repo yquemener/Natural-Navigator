@@ -100,6 +100,7 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pSharedData->nav_boxes.push_back(b);
     m_pSharedData->nav_boxes.push_back(b);
     m_pSharedData->nav_boxes.push_back(b);
+    m_pSharedData->nav_boxes.push_back(b);
 
     m_proc.set_shared_data(m_pSharedData);
     m_gl.set_shared_data(m_pSharedData);
@@ -287,6 +288,14 @@ void MainWindow::on_refreshVideo()
     forwardb.Z1=m_pSharedData->detection_user_max.Z1;
     forwardb.last_state = m_pSharedData->nav_boxes[5].last_state;
     m_pSharedData->nav_boxes[5] = forwardb;
+    //backward
+    forwardb.X1 = m_pSharedData->detection_user_max.X1;
+    forwardb.Y1 = m_pSharedData->detection_user_max.Y1;
+    forwardb.X2 = m_pSharedData->detection_user_max.X2;
+    forwardb.Y2 = m_pSharedData->detection_user_max.Y2;
+    forwardb.Z2 = m_pSharedData->detection_user_max.Z2;
+    forwardb.Z1 = m_pSharedData->detection_user_max.Z2-0.25*dZ;
+    m_pSharedData->nav_boxes[6] = forwardb;
 
 
     m_proc.process_boxes(m_pSharedData->nav_boxes, false);
@@ -370,7 +379,18 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("30 "+v);
   }
 
-  for(i=0;i<6;i++)
+  //bacward
+  if(m_pSharedData->nav_boxes[6].state!=m_pSharedData->nav_boxes[6].last_state)
+  {
+    QString v;
+    if(m_pSharedData->nav_boxes[6].state!=0)
+      v="1";
+    else
+      v="0";
+    this->send_max_command("31 "+v);
+  }
+
+  for(i=0;i<7;i++)
     m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
 
   //turn
@@ -499,7 +519,7 @@ void MainWindow::on_calib_changed()
 void MainWindow::on_sld_z_near_valueChanged(int value)
 {
 		float v = normalized_slider(ui->sld_z_near);
-		v=v*256;
+    v=v*1024;
 		ui->lbl_z_near->setText(QString("Z near : ") + QString::number(v));
 		m_settings->setValue("calib_near_z", ui->sld_z_near->value());
 		m_z_near=ui->sld_z_near->value();
@@ -509,7 +529,7 @@ void MainWindow::on_sld_z_near_valueChanged(int value)
 void MainWindow::on_sld_z_far_valueChanged(int value)
 {
 	float v = normalized_slider(ui->sld_z_far);
-	v=v*256;
+  v=v*1024;
 	ui->lbl_z_far->setText(QString("Z far : ") + QString::number(v));
 	m_settings->setValue("calib_far_z",ui->sld_z_far->value());
 	m_z_near=ui->sld_z_near->value();
