@@ -328,8 +328,35 @@ void MainWindow::on_refreshVideo()
 	}
 
   // Sends UDP messages
+
+  // roll
+  bool didRoll=false;
+  {
+    SharedStruct::box b1,b2;
+    b1 = m_pSharedData->nav_boxes[1];
+    b2 = m_pSharedData->nav_boxes[2];
+    if((b1.state!=0)&&(b2.state!=0))
+    {
+      float dx = abs(b1.xs-b2.xs);
+      float dy = (b1.ys - b2.ys); // invert here to invert the value of the roll
+      float alpha = atan2(dy,dx);
+      if(alpha==alpha)            // checking for NaN
+      {
+        QString cmd;
+        if(alpha>0)
+          cmd = "100 ";
+        else
+          cmd = "97 ";
+        didRoll=true;
+        cmd+=QString::number(fabs(alpha*180.0/M_PI), 'f',2);
+        send_max_command(cmd);
+      }
+    }
+  }
+
   // strafe left
-  if(m_pSharedData->nav_boxes[1].state!=m_pSharedData->nav_boxes[1].last_state)
+  if((m_pSharedData->nav_boxes[1].state!=m_pSharedData->nav_boxes[1].last_state)
+     &&(!didRoll))
   {
     QString v;
     if(m_pSharedData->nav_boxes[1].state!=0)
@@ -339,7 +366,8 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("44 "+v);
   }
   //strafe right
-  if(m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
+  if((m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
+     &&(!didRoll))
   {
     QString v;
     if(m_pSharedData->nav_boxes[2].state!=0)
@@ -453,28 +481,7 @@ void MainWindow::on_refreshVideo()
   turn_up=tu;
   turn_left=tl;
   turn_down=td;
-  // roll
-  {
-    SharedStruct::box b1,b2;
-    b1 = m_pSharedData->nav_boxes[1];
-    b2 = m_pSharedData->nav_boxes[2];
-    if((b1.state!=0)&&(b2.state!=0))
-    {
-      float dx = abs(b1.xs-b2.xs);
-      float dy = (b1.ys - b2.ys); // invert here to invert the value of the roll
-      float alpha = atan2(dy,dx);
-      if(alpha==alpha)            // checking for NaN
-      {
-        QString cmd;
-        if(alpha>0)
-          cmd = "100 ";
-        else
-          cmd = "97 ";
-        cmd+=QString::number(fabs(alpha*180.0/M_PI), 'f',2);
-        send_max_command(cmd);
-      }
-    }
-  }
+
   // User presence code
   {
     static bool user_was_here=false;
