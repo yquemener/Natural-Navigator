@@ -360,11 +360,19 @@ void MainWindow::on_refreshVideo()
           this->send_max_command("46 0");
         }
         rolling=true;
-        cmd+=QString::number(fabs(alpha*180.0/M_PI), 'f',2);
+        cmd+=QString::number(fabs(alpha*2.0/M_PI), 'f',2);
         send_max_command(cmd);
       }
     }
-    if((b1.state==0)&&(b2.state==0)) rolling=false;
+    if((b1.state==0)&&(b2.state==0))
+    {
+      rolling=false;
+      if((b1.last_state!=0)||(b2.last_state!=0))
+      {
+        this->send_max_command("100 0");
+        this->send_max_command("97 0");
+      }
+    }
   }
 
   // strafe left
