@@ -56,6 +56,8 @@ MainWindow::MainWindow(QWidget *parent) :
       on_calib_changed();
       ui->sld_z_far->setValue(m_settings->value("calib_far_z").toInt());
       ui->sld_z_near->setValue(m_settings->value("calib_near_z").toInt());
+      ui->edt_ipadr->setText(m_settings->value("ip_address").toString());
+      ui->edt_port->setText(m_settings->value("udp_port").toString());
       int size=m_settings->beginReadArray("boxes");
       for(int i=0;i<size;i++)
       {
@@ -120,6 +122,8 @@ MainWindow::MainWindow(QWidget *parent) :
 		m_z_far=180;
     on_sld_z_far_valueChanged(ui->sld_z_far->value());
     on_sld_z_near_valueChanged(ui->sld_z_near->value());
+    on_edt_ipadr_editingFinished();
+    on_edt_port_editingFinished();
 }
 
 
@@ -132,6 +136,8 @@ MainWindow::~MainWindow()
   m_settings->setValue("calib_scale_y", ui->sld_scale_y->value());
   m_settings->setValue("calib_far_z", ui->sld_z_far->value());
   m_settings->setValue("calib_near_z", ui->sld_z_near->value());
+  m_settings->setValue("ip_address", ui->edt_ipadr->text());
+  m_settings->setValue("udp_port", ui->edt_port->text());
 
 	m_settings->beginWriteArray("boxes");
   for(int i=0;i<m_pSharedData->user_boxes.size();i++)
@@ -294,7 +300,8 @@ void MainWindow::on_refreshVideo()
     forwardb.X2 = m_pSharedData->detection_user_max.X2;
     forwardb.Y2 = m_pSharedData->detection_user_max.Y2;
     forwardb.Z2 = m_pSharedData->detection_user_max.Z2;
-    forwardb.Z1 = m_pSharedData->detection_user_max.Z2-0.25*dZ;
+    forwardb.Z1 = m_pSharedData->detection_user_max.Z2-0.12*dZ;
+    forwardb.last_state = m_pSharedData->nav_boxes[6].last_state;
     m_pSharedData->nav_boxes[6] = forwardb;
 
 
@@ -330,7 +337,7 @@ void MainWindow::on_refreshVideo()
   // Sends UDP messages
 
   // roll
-  bool didRoll=false;
+  bool rolling=false;
   {
     SharedStruct::box b1,b2;
     b1 = m_pSharedData->nav_boxes[1];
@@ -347,30 +354,34 @@ void MainWindow::on_refreshVideo()
           cmd = "100 ";
         else
           cmd = "97 ";
-        didRoll=true;
+        if(!rolling)
+        {
+          this->send_max_command("44 0");
+          this->send_max_command("46 0");
+        }
+        rolling=true;
         cmd+=QString::number(fabs(alpha*180.0/M_PI), 'f',2);
         send_max_command(cmd);
       }
     }
+    if((b1.state==0)&&(b2.state==0)) rolling=false;
   }
 
   // strafe left
-  if((m_pSharedData->nav_boxes[1].state!=m_pSharedData->nav_boxes[1].last_state)
-     &&(!didRoll))
+  if(m_pSharedData->nav_boxes[1].state!=m_pSharedData->nav_boxes[1].last_state)
   {
     QString v;
-    if(m_pSharedData->nav_boxes[1].state!=0)
+    if((m_pSharedData->nav_boxes[1].state!=0)&&(!rolling))
       v="1";
     else
       v="0";
     this->send_max_command("44 "+v);
   }
   //strafe right
-  if((m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
-     &&(!didRoll))
+  if(m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
   {
     QString v;
-    if(m_pSharedData->nav_boxes[2].state!=0)
+    if((m_pSharedData->nav_boxes[2].state!=0)&&(!rolling))
       v="1";
     else
       v="0";
@@ -407,7 +418,7 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("30 "+v);
   }
 
-  //bacward
+  //backward
   if(m_pSharedData->nav_boxes[6].state!=m_pSharedData->nav_boxes[6].last_state)
   {
     QString v;
@@ -418,7 +429,7 @@ void MainWindow::on_refreshVideo()
     this->send_max_command("31 "+v);
   }
 
-  for(i=0;i<7;i++)
+  for(i=0;i<m_pSharedData->nav_boxes.size();i++)
     m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
 
   //turn
@@ -529,7 +540,7 @@ void MainWindow::on_sld_z_near_valueChanged(int value)
     v=v*1024;
 		ui->lbl_z_near->setText(QString("Z near : ") + QString::number(v));
 		m_settings->setValue("calib_near_z", ui->sld_z_near->value());
-		m_z_near=ui->sld_z_near->value();
+    m_z_near=ui->sld_z_near->value();
 		m_z_far=ui->sld_z_far->value() - ui->sld_z_near->value();
 }
 
@@ -738,4 +749,59 @@ void MainWindow::on_edt_port_editingFinished()
 void MainWindow::on_but_reset_background_depth_clicked()
 {
   m_proc.clear_background_depth();
+}
+
+void MainWindow::on_but_view_plongeante_clicked()
+{
+  m_gl_top_view.m_global_rot_x=-13;
+  m_gl_top_view.m_global_rot_y=54;
+  m_gl_top_view.m_global_rot_z = 0.0;
+  m_gl_top_view.m_look_at_x = 320;
+  m_gl_top_view.m_look_at_y = 240;
+  m_gl_top_view.m_look_at_z = 500;
+  m_gl_top_view.m_perspective=true;
+  m_gl_top_view.m_boxes_visible = true;
+  m_gl_top_view.m_dots_visible=true;
+  m_gl_top_view.m_background_video_type = VIDEO_TYPE_NONE;
+  m_gl_top_view.m_viewer_distance=-100;
+}
+
+void MainWindow::on_but_view_reset_3_clicked()
+{
+  m_gl_top_view.m_global_rot_x=0;
+  m_gl_top_view.m_global_rot_y=0;
+  m_gl_top_view.m_global_rot_z = 0.0;
+  m_gl_top_view.m_look_at_x = 320;
+  m_gl_top_view.m_look_at_y = 240;
+  m_gl_top_view.m_look_at_z = 500;
+  m_gl_top_view.m_perspective=true;
+  m_gl_top_view.m_boxes_visible = true;
+  m_gl_top_view.m_dots_visible=true;
+  m_gl_top_view.m_background_video_type = VIDEO_TYPE_NONE;
+  m_gl_top_view.m_viewer_distance=-712;
+}
+
+void MainWindow::on_but_view_reset_4_clicked()
+{
+  m_gl_top_view.m_global_rot_x=-90;
+  m_gl_top_view.m_global_rot_y=0;
+  m_gl_top_view.m_global_rot_z = 0.0;
+  m_gl_top_view.m_look_at_x = 320;
+  m_gl_top_view.m_look_at_y = 240;
+  m_gl_top_view.m_look_at_z = 500;
+  m_gl_top_view.m_perspective=true;
+  m_gl_top_view.m_boxes_visible = true;
+  m_gl_top_view.m_dots_visible=true;
+  m_gl_top_view.m_background_video_type = VIDEO_TYPE_NONE;
+  m_gl_top_view.m_viewer_distance=-232;
+}
+
+void MainWindow::on_but_reset_boxes_clicked()
+{
+  m_pSharedData->detection_user_max.X1=std::numeric_limits<float>::max();
+  m_pSharedData->detection_user_max.Y1=std::numeric_limits<float>::max();
+  m_pSharedData->detection_user_max.X2=std::numeric_limits<float>::min();
+  m_pSharedData->detection_user_max.Y2=std::numeric_limits<float>::min();
+  m_pSharedData->detection_user_max.Z1=std::numeric_limits<float>::max();
+  m_pSharedData->detection_user_max.Z2=std::numeric_limits<float>::min();
 }

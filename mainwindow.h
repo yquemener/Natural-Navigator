@@ -9,6 +9,7 @@
 #include <QSettings>
 #include "shareddata.h"
 #include <QUdpSocket>
+#include <limits>
 
 
 namespace Ui {
@@ -66,6 +67,10 @@ private slots:
   void on_but_view_reset_clicked();
   void on_edt_port_editingFinished();
   void on_but_reset_background_depth_clicked();
+  void on_but_view_plongeante_clicked();
+  void on_but_view_reset_3_clicked();
+  void on_but_view_reset_4_clicked();
+  void on_but_reset_boxes_clicked();
 };
 
 

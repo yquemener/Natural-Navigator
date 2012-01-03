@@ -371,20 +371,104 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
         }
       }
 
+      // Make a histogram of the points in the user volume
+      {
+        int x,y;
+        int vertical_histogram[480];
+        float vertical_histogram_x[480];
+        float vertical_histogram_z[480];
+        int depth_histogram[1024];
+        float depth_histogram_x[1024];
+        float depth_histogram_y[1024];
+        const int nextline=(640-b.x2+b.x1)*3;
+        int index = (b.y1*640+b.x1)*3+2;
+        memset(vertical_histogram, 0, 480*sizeof(int));
+        memset(depth_histogram, 0, 1024*sizeof(int));
+        memset(vertical_histogram_x, 0, 480*sizeof(float));
+        memset(vertical_histogram_z, 0, 480*sizeof(float));
+        memset(depth_histogram_x, 0, 1024*sizeof(float));
+        memset(depth_histogram_y, 0, 1024*sizeof(float));
+        for(y=b.y1;y<b.y2;y++)
+        {
+          for(x=b.x1;x<b.x2;x++)
+          {
+            if((m_out_data.dots_3d[index]<b.z2)||
+               (m_out_data.dots_3d[index]>b.tip_z))
+            {
+              float pz = m_out_data.dots_3d[index];
+              float py = m_out_data.dots_3d[index-1];
+              float px = m_out_data.dots_3d[index-2];
+              clamp(pz,0,1023);
+              clamp(py,0,479);
+              clamp(px,0,639);
+              vertical_histogram[(int)(py)]++;
+              depth_histogram[(int)(pz)]++;
+              vertical_histogram_x[(int)(py)]+=px;
+              vertical_histogram_z[(int)(py)]+=pz;
+              depth_histogram_x[(int)(pz)]+=px;
+              depth_histogram_y[(int)(pz)]+=py;
+            }
+            index+=3;
+          }
+          index+=nextline;
+        }
+
+        // Use the histogram to find the tip : centroid of the 50 nearest points
+        int tip_tot=0;
+        float tip_x=0;
+        float tip_y=0;
+        float tip_z=0;
+        int i=(int)(z_near);
+        while ((tip_tot<50)&&(i<1024))
+        {
+          if(depth_histogram[i]>15)
+          {
+            tip_tot+=depth_histogram[i];
+            tip_x+=depth_histogram_x[i];
+            tip_y+=depth_histogram_y[i];
+            tip_z+=i*depth_histogram[i];
+          }
+          i++;
+        }
+        m_shared_scene->tip_x=tip_x/tip_tot;
+        m_shared_scene->tip_y=tip_y/tip_tot;
+        if((float)(tip_z)/tip_tot>z_near)
+          m_shared_scene->tip_z=(float)(tip_z)/tip_tot;
+
+        // Use the histogram to find the head : centroid of the 300 highest points
+        int head_tot=0;
+        float head_x=0;
+        float head_y=0;
+        float head_z=0;
+        i=1;
+        while ((head_tot<300)&&(i<480))
+        {
+          head_tot+=vertical_histogram[i];
+          head_x+=vertical_histogram_x[i];
+          head_z+=vertical_histogram_z[i];
+          head_y+=i*vertical_histogram[i];
+          i++;
+        }
+        m_shared_scene->head_x=head_x/head_tot;
+        m_shared_scene->head_y=head_y/head_tot;
+        m_shared_scene->head_z=(float)(head_z)/head_tot;
+      }
+
       m_shared_scene->detection_user.X1 = b.x1;
       m_shared_scene->detection_user.X2 = b.x2;
       m_shared_scene->detection_user.Y1 = b.y1;
       m_shared_scene->detection_user.Y2 = b.y2;
-      m_shared_scene->detection_user.Z1 = float(b.tip_z)*b.tip_z*b.tip_z/4000000.0;
+      //m_shared_scene->detection_user.Z1 = float(b.tip_z)*b.tip_z*b.tip_z/4000000.0;
+      m_shared_scene->detection_user.Z1 = m_shared_scene->tip_z;
       m_shared_scene->detection_user.Z2 = float(b.z2)*b.z2*b.z2/4000000.0;
 
-      m_shared_scene->tip_x = b.tip_x;
+      /*m_shared_scene->tip_x = b.tip_x;
       m_shared_scene->tip_y = b.tip_y;
       m_shared_scene->tip_z = m_shared_scene->detection_user.Z1;
 
       m_shared_scene->head_x = b.head_x;
       m_shared_scene->head_y = b.head_y;
-      m_shared_scene->head_z = float(b.head_z)*b.head_z*b.head_z/4000000.0;
+      m_shared_scene->head_z = float(b.head_z)*b.head_z*b.head_z/4000000.0;*/
 
       m_shared_scene->detection_user.X1 =
           (m_shared_scene->detection_user.X1)*m_scale_x + m_offset_x*640;
@@ -435,85 +519,6 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
         m_shared_scene->detection_user_max.Z2 = max(
               m_shared_scene->detection_user_max.Z2,
               m_shared_scene->detection_user.Z2);
-      }
-
-      // Make a histogram of the points in the user volume
-      {
-        int x,y;
-        int vertical_histogram[480];
-        float vertical_histogram_x[480];
-        float vertical_histogram_z[480];
-        int depth_histogram[1024];
-        float depth_histogram_x[1024];
-        float depth_histogram_y[1024];
-        const int nextline=(640-b.x2+b.x1)*3;
-        int index = (b.y1*640+b.x1)*3+2;
-        memset(vertical_histogram, 0, 480*sizeof(int));
-        memset(depth_histogram, 0, 1024*sizeof(int));
-        memset(vertical_histogram_x, 0, 480*sizeof(float));
-        memset(vertical_histogram_z, 0, 480*sizeof(float));
-        memset(depth_histogram_x, 0, 1024*sizeof(float));
-        memset(depth_histogram_y, 0, 1024*sizeof(float));
-        for(y=b.y1;y<b.y2;y++)
-        {
-          for(x=b.x1;x<b.x2;x++)
-          {
-            if((m_out_data.dots_3d[index]<b.z2)||
-               (m_out_data.dots_3d[index]>b.tip_z))
-            {
-              float pz = m_out_data.dots_3d[index];
-              float py = m_out_data.dots_3d[index-1];
-              float px = m_out_data.dots_3d[index-2];
-              clamp(pz,0,1023);
-              clamp(py,0,479);
-              clamp(px,0,639);
-              vertical_histogram[(int)(py)]++;
-              depth_histogram[(int)(pz)]++;
-              vertical_histogram_x[(int)(py)]+=px;
-              vertical_histogram_z[(int)(py)]+=pz;
-              depth_histogram_x[(int)(pz)]+=px;
-              depth_histogram_y[(int)(pz)]+=py;
-            }
-            index+=3;
-          }
-          index+=nextline;
-        }
-
-        // Use the histogram to find the tip : centroid of the 300 nearest points
-        int tip_tot=0;
-        float tip_x=0;
-        float tip_y=0;
-        float tip_z=0;
-        int i=1;
-        while ((tip_tot<50)&&(i<1024))
-        {
-          tip_tot+=depth_histogram[i];
-          tip_x+=depth_histogram_x[i];
-          tip_y+=depth_histogram_y[i];
-          tip_z+=i*depth_histogram[i];
-          i++;
-        }
-        m_shared_scene->tip_x=tip_x/tip_tot;
-        m_shared_scene->tip_y=tip_y/tip_tot;
-        m_shared_scene->tip_z=(float)(tip_z)/tip_tot;
-
-        // Use the histogram to find the head : centroid of the 300 highest points
-        int head_tot=0;
-        float head_x=0;
-        float head_y=0;
-        float head_z=0;
-        i=1;
-        while ((head_tot<300)&&(i<480))
-        {
-          head_tot+=vertical_histogram[i];
-          head_x+=vertical_histogram_x[i];
-          head_z+=vertical_histogram_z[i];
-          head_y+=i*vertical_histogram[i];
-          i++;
-        }
-        m_shared_scene->head_x=head_x/head_tot;
-        m_shared_scene->head_y=head_y/head_tot;
-        m_shared_scene->head_z=(float)(head_z)/head_tot;
       }
 
       return b;
@@ -683,7 +688,7 @@ void ZCamProcessing::process_blobs(const float z_near, const float z_far,
 
 void ZCamProcessing::set_background_depth(float zdebug)
 {
-  const float MULTIPLY_FACTOR = 0.99f;
+  const float MULTIPLY_FACTOR = 0.95f;
   short * buf;
   int i;
   uint32_t ts;
@@ -705,9 +710,9 @@ void ZCamProcessing::set_background_depth(float zdebug)
   int firsti=0;
   while(i<640*480)
   {
-    if(m_background_depth[i]>1024)
+    if(m_background_depth[i]>8000)
     {
-      while((i<640*480-1)&&(m_background_depth[i]>1024))
+      while((i<640*480-1)&&(m_background_depth[i]>8000))
       {
         i++;
       }

@@ -179,6 +179,27 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="but_view_plongeante">
+          <property name="text">
+           <string>Vue plongeante</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="but_view_reset_4">
+          <property name="text">
+           <string>Vue de coté</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="but_view_reset_3">
+          <property name="text">
+           <string>Vue de face</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="verticalSpacer_2">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -357,6 +378,13 @@
          <widget class="QPushButton" name="but_reset_background_depth">
           <property name="text">
            <string>Reset Background depth</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="but_reset_boxes">
+          <property name="text">
+           <string>Reset Boxes</string>
           </property>
          </widget>
         </item>
