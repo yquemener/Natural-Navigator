@@ -181,8 +181,8 @@ void MainWindow::on_refreshVideo()
 
 	// Processing
 
-	QTime t = QTime::currentTime();
-	std::vector<blob> bres;
+  QTime t = QTime::currentTime();
+  std::vector<blob> bres;
   m_proc.update();
   m_proc.process_boxes(m_pSharedData->user_boxes, true);
 
@@ -207,7 +207,7 @@ void MainWindow::on_refreshVideo()
   //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
   //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 0,640,0,480);
   //blob b;
-  blob b = m_proc.process_user_volume(m_z_near, m_z_far, 0, 640, 0, 480);
+  blob b = m_proc.process_user_volume(m_z_near, m_z_far, 0, 640, 0, 480, ui->but_lock_boxes->isChecked());
   m_gl.m_blobs.clear();
   m_gl.m_blobs.push_back(b.tip_x);
   m_gl.m_blobs.push_back(b.tip_y);
@@ -225,6 +225,8 @@ void MainWindow::on_refreshVideo()
 
   //qDebug("%d %f %f %d", bres.size(), bres[bres.size()-1].cx, bres[bres.size()-1].cy, bres[bres.size()-1].x1);
 
+
+  if(!ui->but_lock_boxes->isChecked())
   {
   /** Make 5 navigator boxes accordingly :
     * 0 : go forward, according to the tip's direction
@@ -304,9 +306,9 @@ void MainWindow::on_refreshVideo()
     forwardb.last_state = m_pSharedData->nav_boxes[6].last_state;
     m_pSharedData->nav_boxes[6] = forwardb;
 
-
-    m_proc.process_boxes(m_pSharedData->nav_boxes, false);
   }
+
+  m_proc.process_boxes(m_pSharedData->nav_boxes, false);
 	// Copying ZCamProcessing results into the GLWidget
   //m_gl.m_blobs.clear();
   for(i=0;i<bres.size();i++)

@@ -81,7 +81,7 @@ public:
                        const bool rescale);
     blob process_user_volume(const float z_near, const float z_far,
                            const float x1, const float x2,
-                           const float y1, const float y2);
+                           const float y1, const float y2, bool lockmax=false);
     void process_blobs(const float z_near, const float z_far,
                        const float x1, const float x2,
                        const float y1, const float y2,

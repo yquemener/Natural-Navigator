@@ -326,7 +326,7 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
 
 blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
                                        const float x1, const float x2,
-                                       const float y1, const float y2)
+                                       const float y1, const float y2, bool lockmax)
 {
       std::vector<blob> results;
       blob b;
@@ -489,6 +489,7 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
       m_shared_scene->head_y =
           (m_shared_scene->head_y)*m_scale_y + m_offset_y*480;
 
+      if(lockmax) return b;
       if((m_shared_scene->detection_user.X1 > 1000)||
          (m_shared_scene->detection_user.Y1 > 1000))
       {

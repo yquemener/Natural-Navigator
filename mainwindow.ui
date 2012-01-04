@@ -389,6 +389,16 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="but_lock_boxes">
+          <property name="text">
+           <string>Lock Boxes</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QLabel" name="lbl_z_near">
           <property name="text">
            <string>Z near</string>
