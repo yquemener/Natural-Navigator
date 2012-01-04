@@ -154,6 +154,7 @@ void GLWidget::draw_icon(float x1, float x2, float y1, float y2, GLuint tex)
 
 void GLWidget::paintGL()
 {
+  static GLUquadric* stayHere = gluNewQuadric();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity( );
 
@@ -247,29 +248,6 @@ void GLWidget::paintGL()
     //glTranslatef(-640,0,0);
     glScalef(-1,1,4);
 
-    // Draw the tip position
-    static GLUquadric* stayHere = gluNewQuadric();
-    glPushMatrix();
-    glTranslatef(m_shared_scene->tip_x,
-                 m_shared_scene->tip_y,
-                 m_shared_scene->tip_z);
-    glScalef(1,1,0.25f);
-    glColor3f(1,0,0);
-    gluSphere(stayHere, 15.0,20,10);
-    glPopMatrix();
-
-
-    // Draw the head position
-    glPushMatrix();
-    glTranslatef(m_shared_scene->head_x,
-                 m_shared_scene->head_y,
-                 m_shared_scene->head_z);
-    glScalef(1,1,0.25f);
-    glColor3f(1,0,0);
-    gluSphere(stayHere, 15.0,20,10);
-    glPopMatrix();
-
-
     //Draw the user volume and max volume
     SharedStruct::box b=m_shared_scene->detection_user;
     //draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,1,3);
@@ -317,6 +295,28 @@ void GLWidget::paintGL()
       draw_box(x1,x2,y1,y2,z1,z2,(m.state!=0),1);
     }
 
+    // Draw the tip position
+    glDisable(GL_DEPTH_TEST);
+    glPushMatrix();
+    glTranslatef(m_shared_scene->tip_x,
+                 m_shared_scene->tip_y,
+                 m_shared_scene->tip_z);
+    glScalef(1,1,0.25f);
+    glColor4f(1,0,0,1);
+    gluSphere(stayHere, 15.0,20,10);
+    glPopMatrix();
+
+
+    // Draw the head position
+    glPushMatrix();
+    glTranslatef(m_shared_scene->head_x,
+                 m_shared_scene->head_y,
+                 m_shared_scene->head_z);
+    glScalef(1,1,0.25f);
+    glColor4f(1,0,0,1);
+    gluSphere(stayHere, 15.0,20,10);
+    glPopMatrix();
+    glEnable(GL_DEPTH_TEST);
 
     glPopMatrix();
   }
