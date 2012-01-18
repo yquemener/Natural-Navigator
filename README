@@ -2,3 +2,5 @@ The aim of Natural Navigator is to provide a way to move in a 3D environment
 thanks to a kinect sensor. For this a GUI was developped to test several
 approach. It outputs command on a UDP socket in order to pilot a 3D renderer
 (not included).
+
+This program is released under the GPL v3.
