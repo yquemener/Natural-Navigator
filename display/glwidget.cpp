@@ -16,6 +16,7 @@ Copyright (C) 2011 Yves Quemener, IV-devs, Creartcom
     */
     
 #include "glwidget.h"
+#include <GL/glu.h>
 #include <QMouseEvent>
 
 const GLfloat options_color[10*4] ={

@@ -37,12 +37,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
 
-	m_udpSocket = new QUdpSocket(this);
-  m_destAddress.setAddress("127.0.0.1");
-  m_UdpPort = 7474;
-  //m_udpSocket->bind(QHostAddress("127.0.0.1"), 7475);
-
-
 	// initialize the shared scene
 	m_pSharedData = new SharedStruct::scene();
 
@@ -71,8 +65,6 @@ MainWindow::MainWindow(QWidget *parent) :
       on_calib_changed();
       ui->sld_z_far->setValue(m_settings->value("calib_far_z").toInt());
       ui->sld_z_near->setValue(m_settings->value("calib_near_z").toInt());
-      ui->edt_ipadr->setText(m_settings->value("ip_address").toString());
-      ui->edt_port->setText(m_settings->value("udp_port").toString());
       int size=m_settings->beginReadArray("boxes");
       for(int i=0;i<size;i++)
       {
@@ -137,41 +129,37 @@ MainWindow::MainWindow(QWidget *parent) :
 		m_z_far=180;
     on_sld_z_far_valueChanged(ui->sld_z_far->value());
     on_sld_z_near_valueChanged(ui->sld_z_near->value());
-    on_edt_ipadr_editingFinished();
-    on_edt_port_editingFinished();
 }
 
 
 
 MainWindow::~MainWindow()
 {
-	m_settings->setValue("calib_offset_x", ui->sld_offset_x->value());
-	m_settings->setValue("calib_offset_y", ui->sld_offset_y->value());
-  m_settings->setValue("calib_scale_x", ui->sld_scale_x->value());
-  m_settings->setValue("calib_scale_y", ui->sld_scale_y->value());
-  m_settings->setValue("calib_far_z", ui->sld_z_far->value());
-  m_settings->setValue("calib_near_z", ui->sld_z_near->value());
-  m_settings->setValue("ip_address", ui->edt_ipadr->text());
-  m_settings->setValue("udp_port", ui->edt_port->text());
+    m_settings->setValue("calib_offset_x", ui->sld_offset_x->value());
+    m_settings->setValue("calib_offset_y", ui->sld_offset_y->value());
+    m_settings->setValue("calib_scale_x", ui->sld_scale_x->value());
+    m_settings->setValue("calib_scale_y", ui->sld_scale_y->value());
+    m_settings->setValue("calib_far_z", ui->sld_z_far->value());
+    m_settings->setValue("calib_near_z", ui->sld_z_near->value());
 
-	m_settings->beginWriteArray("boxes");
-  for(int i=0;i<m_pSharedData->user_boxes.size();i++)
-	{
-		m_settings->setArrayIndex(i);
-    SharedStruct::box b = m_pSharedData->user_boxes[i];
-		m_settings->setValue("x", QString::number(b.X1));
-		m_settings->setValue("y", QString::number(b.Y1));
-		m_settings->setValue("z", QString::number(b.Z1));
-		m_settings->setValue("width", QString::number(b.X2-b.X1));
-		m_settings->setValue("height", QString::number(b.Y2-b.Y1));
-		m_settings->setValue("depth", QString::number(b.Z2-b.Z1));
-    m_settings->setValue("behavior", QString::number(b.behavior));
-    m_settings->setValue("udp_code", QString::number(b.udp_code));
-	}
-	m_settings->endArray();
+    m_settings->beginWriteArray("boxes");
+    for(int i=0;i<m_pSharedData->user_boxes.size();i++)
+    {
+        m_settings->setArrayIndex(i);
+        SharedStruct::box b = m_pSharedData->user_boxes[i];
+        m_settings->setValue("x", QString::number(b.X1));
+        m_settings->setValue("y", QString::number(b.Y1));
+        m_settings->setValue("z", QString::number(b.Z1));
+        m_settings->setValue("width", QString::number(b.X2-b.X1));
+        m_settings->setValue("height", QString::number(b.Y2-b.Y1));
+        m_settings->setValue("depth", QString::number(b.Z2-b.Z1));
+        m_settings->setValue("behavior", QString::number(b.behavior));
+        m_settings->setValue("udp_code", QString::number(b.udp_code));
+    }
+    m_settings->endArray();
 
-	m_settings->sync();
-	delete ui;
+    m_settings->sync();
+    delete ui;
 }
 
 void MainWindow::on_refreshVideo()
@@ -212,8 +200,7 @@ void MainWindow::on_refreshVideo()
         msg+=QString::number(m_pSharedData->user_boxes[i].state);
       else
         msg+="0";
-      //send_max_command(+" "+val);
-      send_max_command(msg);
+      //send_max_command(msg);
       m_pSharedData->user_boxes[i].last_state = m_pSharedData->user_boxes[i].state;
     }
   }
@@ -373,12 +360,12 @@ void MainWindow::on_refreshVideo()
           cmd = "97 ";
         if(!rolling)
         {
-          this->send_max_command("44 0");
-          this->send_max_command("46 0");
+          //this->send_max_command("44 0");
+          //this->send_max_command("46 0");
         }
         rolling=true;
         cmd+=QString::number(fabs(alpha*2.0/M_PI), 'f',2);
-        send_max_command(cmd);
+        //send_max_command(cmd);
       }
     }
     if((b1.state==0)&&(b2.state==0))
@@ -386,8 +373,8 @@ void MainWindow::on_refreshVideo()
       rolling=false;
       if((b1.last_state!=0)||(b2.last_state!=0))
       {
-        this->send_max_command("100 0");
-        this->send_max_command("97 0");
+        //this->send_max_command("100 0");
+        //this->send_max_command("97 0");
       }
     }
   }
@@ -400,7 +387,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("44 "+v);
+    //this->send_max_command("44 "+v);
   }
   //strafe right
   if(m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
@@ -410,7 +397,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("46 "+v);
+    //this->send_max_command("46 "+v);
   }
   //strafe up
   if(m_pSharedData->nav_boxes[3].state!=m_pSharedData->nav_boxes[3].last_state)
@@ -420,7 +407,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("39 "+v);
+    //this->send_max_command("39 "+v);
   }
   //strafe down
   if(m_pSharedData->nav_boxes[4].state!=m_pSharedData->nav_boxes[4].last_state)
@@ -430,7 +417,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("47 "+v);
+    //this->send_max_command("47 "+v);
   }
   //forward
   if(m_pSharedData->nav_boxes[5].state!=m_pSharedData->nav_boxes[5].last_state)
@@ -440,7 +427,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("30 "+v);
+    //this->send_max_command("30 "+v);
   }
 
   //backward
@@ -451,7 +438,7 @@ void MainWindow::on_refreshVideo()
       v="1";
     else
       v="0";
-    this->send_max_command("31 "+v);
+    //this->send_max_command("31 "+v);
   }
 
   for(i=0;i<m_pSharedData->nav_boxes.size();i++)
@@ -480,39 +467,6 @@ void MainWindow::on_refreshVideo()
     if(b.xs>centerx) tr=true; else tl=true;
     if(b.ys>centery) tu=true; else td=true;
   }
-  if(tu)
-    send_max_command("29 "+yval);
-  else
-  {
-    if(tu!=turn_up)
-    {
-      send_max_command("29 0");
-    }
-  }
-
-  if(td)
-    send_max_command("28 "+yval);
-  else
-    if(td!=turn_down)
-    {
-      send_max_command("28 0");
-    }
-
-  if(tl)
-    send_max_command("120 "+xval);
-  else
-    if(tl!=turn_left)
-    {
-      send_max_command("120 0");
-    }
-
-  if(tr)
-    send_max_command("119 "+xval);
-  else
-    if(tr!=turn_right)
-    {
-      send_max_command("119 0");
-    }
   turn_right=tr;
   turn_up=tu;
   turn_left=tl;
@@ -529,9 +483,13 @@ void MainWindow::on_refreshVideo()
     if(user_was_here!=user_is_here)
     {
       if(user_is_here)
-        send_max_command("40 1");
+      {
+        //send_max_command("40 1");
+      }
       else
-        send_max_command("40 0");
+      {
+        //send_max_command("40 0");
+      }
     }
     user_was_here=user_is_here;
   }
@@ -671,14 +629,6 @@ void MainWindow::on_but_deactivate_display_clicked()
 
 }
 
-void MainWindow::send_max_command(QString msg)
-{
-	QByteArray a;
-	a.append(msg);
-  m_udpSocket->writeDatagram(a, m_destAddress, m_UdpPort);
-	m_udpSocket->flush();
-}
-
 void MainWindow::on_sld_depth_boxes_actionTriggered(int action)
 {
 
@@ -716,28 +666,6 @@ void MainWindow::on_but_background_depth_clicked()
   m_proc.set_background_depth(m_z_near);
 }
 
-void MainWindow::on_edt_ipadr_editingFinished()
-{
-  m_destAddress.setAddress(this->ui->edt_ipadr->text());
-
-  quint32 netmask1,netmask2;
-
-  foreach(QNetworkInterface nwi, QNetworkInterface::allInterfaces())
-  {
-    foreach(QNetworkAddressEntry addr, nwi.addressEntries())
-    {
-      QString dbg1,dbg2;
-      int dbg3 = addr.prefixLength();
-      netmask1 = m_destAddress.toIPv4Address() >> (32-addr.prefixLength());
-      netmask2 = addr.ip().toIPv4Address() >> (32-addr.prefixLength());
-      dbg1 = m_destAddress.toString();
-      dbg2 = addr.ip().toString();
-      /*if(netmask1 == netmask2)
-        m_udpSocket->bind(addr.ip(), 7575);*/
-
-    }
-  }
-}
 
 void MainWindow::on_but_view_reset_clicked()
 {
@@ -764,11 +692,6 @@ void MainWindow::on_but_view_reset_clicked()
   m_gl.m_blobs_visible = true;
   m_gl.m_viewer_distance=0.0;
 
-}
-
-void MainWindow::on_edt_port_editingFinished()
-{
-  m_UdpPort = this->ui->edt_port->text().toInt();
 }
 
 void MainWindow::on_but_reset_background_depth_clicked()
