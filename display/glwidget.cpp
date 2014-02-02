@@ -259,58 +259,44 @@ void GLWidget::paintGL()
         glPopMatrix();
     }
 
+    // Draw trajectory
     {
         glPushMatrix();
-        //glTranslatef(-640,0,0);
+        glScalef(-1,1,1);
+        printf("Trajec size:%d\n", m_shared_scene->trajectory.size());
+        for(int i=0;i<m_shared_scene->trajectory.size();i++)
+        {
+            SharedStruct::P3D p = m_shared_scene->trajectory[i];
+            glColor3f(1,0,0);
+            glPushMatrix();
+            glTranslatef(p.x, p.y, p.z*4);
+            gluSphere(stayHere, 5, 20,10);
+            glPopMatrix();
+        }
+        glBegin(GL_LINE_STRIP);
+        for(int i=0;i<m_shared_scene->trajectory.size();i++)
+        {
+            SharedStruct::P3D p = m_shared_scene->trajectory[i];
+            glVertex3f(p.x, p.y, p.z*4);
+        }
+        glEnd();
+        glPopMatrix();
+    }
+
+    //Draw the user volume
+    if(m_boxes_visible)
+    {
+        glPushMatrix();
         glScalef(-1,1,4);
 
-        //Draw the user volume and max volume
         SharedStruct::box b=m_shared_scene->detection_user;
         if(b.state!=0)
             draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,1,3);
 
-        //Draw the maximum volume
-        //b=m_shared_scene->detection_user_max;
-        draw_box(b.X1,b.X2,b.Y1,b.Y2,b.Z1,b.Z2,0,6);
 
-        // Draw the roll bar if both strafes are selected
-
-        if((m_shared_scene->nav_boxes[1].state!=0)&&
-                (m_shared_scene->nav_boxes[2].state!=0))
-        {
-            SharedStruct::box b1,b2;
-            b1 = m_shared_scene->nav_boxes[1];
-            b2 = m_shared_scene->nav_boxes[2];
-            glColor3f(0,0,1);
-            glPushMatrix();
-            glTranslatef(b1.xs, b1.ys, b1.zs);
-            gluSphere(stayHere, 15, 20,10);
-            glPopMatrix();
-            glPushMatrix();
-            glTranslatef(b2.xs, b2.ys, b2.zs);
-            gluSphere(stayHere, 15, 20,10);
-            glPopMatrix();
-            glLineWidth(5.0);
-            glBegin(GL_LINES);
-            glVertex3f(b1.xs, b1.ys, b1.zs);
-            glVertex3f(b2.xs, b2.ys, b2.zs);
-            glEnd();
-            glLineWidth(1.0);
-        }
         glPopMatrix();
     }
-    // Draw trajectory
-    {
-        /*for(int i=0;i<m_shared_scene->trajectory.size();i++)
-        {
-            SharedStruct::P3D p = m_shared_scene->trajectory[i];
-            glColor3f(0,0,1);
-            glPushMatrix();
-            glTranslatef(p.x, p.y, p.z);
-            gluSphere(stayHere, 5, 20,10);
-            glPopMatrix();
-        }*/
-    }
+
 }
 
 void GLWidget::resizeGL(int width, int height)

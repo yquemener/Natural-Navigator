@@ -210,12 +210,12 @@ void MainWindow::on_refreshVideo()
 
 
     blob b = m_proc.process_user_volume(m_z_near, m_z_far, 320, 640, 0, 480, ui->but_lock_boxes->isChecked());
-    if(m_pSharedData->detection_user.state!=0)
+    if((m_pSharedData->detection_user.state!=0)&&(ui->but_record_trajectory->isChecked()))
     {
         float cx = (m_pSharedData->detection_user.X1 + m_pSharedData->detection_user.X2)/2.0;
         float cy = (m_pSharedData->detection_user.Y1 + m_pSharedData->detection_user.Y2)/2.0;
         float cz = (m_pSharedData->detection_user.Z1 + m_pSharedData->detection_user.Z2)/2.0;
-        //m_pSharedData->trajectory.push_back(SharedStruct::P3D(cx,cy,cz));
+        m_pSharedData->trajectory.push_back(SharedStruct::P3D(cx,cy,cz));
     }
     m_gl.m_blobs.clear();
     m_gl.m_blobs.push_back(b.tip_x);

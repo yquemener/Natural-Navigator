@@ -58,7 +58,7 @@ typedef struct {
   float tip_x,tip_y,tip_z;  // Coordinates of the closest point of the user volume
   float head_x,head_y,head_z; // Coordinates of the highest point of the user volume
 
-  //std::vector<P3D> trajectory;
+  std::vector<P3D> trajectory;
 } scene;
 
 }
