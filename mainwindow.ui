@@ -382,6 +382,16 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="but_record_trajectory">
+          <property name="text">
+           <string>Record Trajectory</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="but_reset_boxes">
           <property name="text">
            <string>Reset Boxes</string>

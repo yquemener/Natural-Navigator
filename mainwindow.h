@@ -22,6 +22,7 @@ Copyright (C) 2011 Yves Quemener, IV-devs, Creartcom
 #include <QMainWindow>
 #include "display/glwidget.h"
 #include <QTimer>
+#include <QTime>
 #include <QSettings>
 #include "shareddata.h"
 #include <QUdpSocket>
@@ -47,8 +48,11 @@ private:
     GLWidget m_gl_top_view;
     QTimer m_clock;
     QSettings * m_settings;
+    QTime m_timer;
+    QTimer m_timer_learn;
 
     float m_z_near, m_z_far;
+    float m_fps;
 
 
     SharedStruct::scene * m_pSharedData;

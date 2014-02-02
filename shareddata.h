@@ -29,6 +29,17 @@ namespace SharedStruct
     typedef enum{ SIMPLE_BOX, HORIZONTAL_SLIDER, VERTICAL_SLIDER, TOGGLE_BOX }
     behavior_t;
 
+struct P3D_t{
+    float x,y,z;
+
+    P3D_t(float a, float b, float c)
+    {
+        x=a;y=b;z=c;
+    }
+};
+
+typedef P3D_t P3D;
+
 typedef struct {
 	float X1,Y1,Z1,X2,Y2,Z2;
 	float R,G,B;
@@ -46,6 +57,8 @@ typedef struct {
   box detection_user_max;
   float tip_x,tip_y,tip_z;  // Coordinates of the closest point of the user volume
   float head_x,head_y,head_z; // Coordinates of the highest point of the user volume
+
+  //std::vector<P3D> trajectory;
 } scene;
 
 }

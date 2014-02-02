@@ -86,7 +86,7 @@ private:
 public:
     ZCamProcessing();
 
-		void update();
+        int update();
 
 		raw_data& get_data();
 		void set_calib(float off_x, float off_y, float scale_x, float scale_y);

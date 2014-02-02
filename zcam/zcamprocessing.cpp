@@ -99,22 +99,21 @@ ZCamProcessing::ZCamProcessing()
 	static const char cpyright[] = "Virtopia interface\n(C) 2011 Yves Quemener\n";
 }
 
-void ZCamProcessing::update()
+int ZCamProcessing::update()
 {
 	short *depth = 0;
 	char *rgb = 0;
 	uint32_t ts;
 	int i,j;
 
-	if (freenect_sync_get_video((void**)&(m_out_data.rgb_data), &ts, 0, FREENECT_VIDEO_RGB) < 0)
+    if (freenect_sync_get_depth((void**)&(m_out_data.depth_data), &ts, 0, FREENECT_DEPTH_11BIT) < 0)
+    {
+        return -1;
+    }
+    if (freenect_sync_get_video((void**)&(m_out_data.rgb_data), &ts, 0, FREENECT_VIDEO_RGB) < 0)
 	{
-		return;
-	}
-	if (freenect_sync_get_depth((void**)&(m_out_data.depth_data), &ts, 0, FREENECT_DEPTH_11BIT) < 0)
-	{
-		return;
-	}
-
+        return -1;
+    }
 	for(int i=0; i<640*480-3; i++ )
 	{
 		char c;
@@ -137,7 +136,7 @@ void ZCamProcessing::update()
 //		if((v/4000000.0<m_z_far)&&
 //			 (v/4000000.0>m_z_near))
 
-		if(v/4000000.0>0)
+        if(v>0)
 		{
 			m_out_data.dots_3d[i*3] = ((i%640))*m_scale_x + m_offset_x*640;
 			m_out_data.dots_3d[i*3+1] = ((i/640))*m_scale_y + m_offset_y*480;
@@ -190,7 +189,7 @@ void ZCamProcessing::update()
       m_out_data.dots_3d[i*3+2] = 0;
     }
   }*/
-
+    return 0;
 }
 
 raw_data& ZCamProcessing::get_data()
@@ -360,11 +359,12 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
       b.z2=std::numeric_limits<int>::min();
       b.area=0;
       b.perimeter=0;
+      m_shared_scene->detection_user.state = 0;
 
-      // Consider all blobs bigger than 1000 pixels to be part of the user
+      // Consider all blobs bigger than 100 pixels to be part of the copter
       for(int i=0;i<results.size();i++)
       {
-        if(results[i].area>1000)
+        if(results[i].area>20)
         {
           b.x1=min(b.x1, results[i].x1);
           if(b.y1 > results[i].y1)
@@ -382,108 +382,18 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
             b.tip_y = results[i].tip_y;
             b.tip_x = results[i].tip_x;
           }
+
           b.z2 = max(b.z2,results[i].z2);
+          m_shared_scene->detection_user.state = 1;
         }
-      }
-
-      // Make a histogram of the points in the user volume
-      {
-        int x,y;
-        int vertical_histogram[480];
-        float vertical_histogram_x[480];
-        float vertical_histogram_z[480];
-        int depth_histogram[1024];
-        float depth_histogram_x[1024];
-        float depth_histogram_y[1024];
-        const int nextline=(640-b.x2+b.x1)*3;
-        int index = (b.y1*640+b.x1)*3+2;
-        memset(vertical_histogram, 0, 480*sizeof(int));
-        memset(depth_histogram, 0, 1024*sizeof(int));
-        memset(vertical_histogram_x, 0, 480*sizeof(float));
-        memset(vertical_histogram_z, 0, 480*sizeof(float));
-        memset(depth_histogram_x, 0, 1024*sizeof(float));
-        memset(depth_histogram_y, 0, 1024*sizeof(float));
-        for(y=b.y1;y<b.y2;y++)
-        {
-          for(x=b.x1;x<b.x2;x++)
-          {
-            if((m_out_data.dots_3d[index]<b.z2)||
-               (m_out_data.dots_3d[index]>b.tip_z))
-            {
-              float pz = m_out_data.dots_3d[index];
-              float py = m_out_data.dots_3d[index-1];
-              float px = m_out_data.dots_3d[index-2];
-              clamp(pz,0,1023);
-              clamp(py,0,479);
-              clamp(px,0,639);
-              vertical_histogram[(int)(py)]++;
-              depth_histogram[(int)(pz)]++;
-              vertical_histogram_x[(int)(py)]+=px;
-              vertical_histogram_z[(int)(py)]+=pz;
-              depth_histogram_x[(int)(pz)]+=px;
-              depth_histogram_y[(int)(pz)]+=py;
-            }
-            index+=3;
-          }
-          index+=nextline;
-        }
-
-        // Use the histogram to find the tip : centroid of the 50 nearest points
-        int tip_tot=0;
-        float tip_x=0;
-        float tip_y=0;
-        float tip_z=0;
-        int i=(int)(z_near);
-        while ((tip_tot<50)&&(i<1024))
-        {
-          if(depth_histogram[i]>15)
-          {
-            tip_tot+=depth_histogram[i];
-            tip_x+=depth_histogram_x[i];
-            tip_y+=depth_histogram_y[i];
-            tip_z+=i*depth_histogram[i];
-          }
-          i++;
-        }
-        m_shared_scene->tip_x=tip_x/tip_tot;
-        m_shared_scene->tip_y=tip_y/tip_tot;
-        if((float)(tip_z)/tip_tot>z_near)
-          m_shared_scene->tip_z=(float)(tip_z)/tip_tot;
-
-        // Use the histogram to find the head : centroid of the 300 highest points
-        int head_tot=0;
-        float head_x=0;
-        float head_y=0;
-        float head_z=0;
-        i=1;
-        while ((head_tot<300)&&(i<480))
-        {
-          head_tot+=vertical_histogram[i];
-          head_x+=vertical_histogram_x[i];
-          head_z+=vertical_histogram_z[i];
-          head_y+=i*vertical_histogram[i];
-          i++;
-        }
-        m_shared_scene->head_x=head_x/head_tot;
-        m_shared_scene->head_y=head_y/head_tot;
-        m_shared_scene->head_z=(float)(head_z)/head_tot;
       }
 
       m_shared_scene->detection_user.X1 = b.x1;
       m_shared_scene->detection_user.X2 = b.x2;
       m_shared_scene->detection_user.Y1 = b.y1;
       m_shared_scene->detection_user.Y2 = b.y2;
-      //m_shared_scene->detection_user.Z1 = float(b.tip_z)*b.tip_z*b.tip_z/4000000.0;
-      m_shared_scene->detection_user.Z1 = m_shared_scene->tip_z;
+      m_shared_scene->detection_user.Z1 = float(b.tip_z)*b.tip_z*b.tip_z/4000000.0;//m_shared_scene->tip_z;
       m_shared_scene->detection_user.Z2 = float(b.z2)*b.z2*b.z2/4000000.0;
-
-      /*m_shared_scene->tip_x = b.tip_x;
-      m_shared_scene->tip_y = b.tip_y;
-      m_shared_scene->tip_z = m_shared_scene->detection_user.Z1;
-
-      m_shared_scene->head_x = b.head_x;
-      m_shared_scene->head_y = b.head_y;
-      m_shared_scene->head_z = float(b.head_z)*b.head_z*b.head_z/4000000.0;*/
 
       m_shared_scene->detection_user.X1 =
           (m_shared_scene->detection_user.X1)*m_scale_x + m_offset_x*640;
@@ -503,39 +413,6 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
           (m_shared_scene->head_x)*m_scale_x + m_offset_x*640;
       m_shared_scene->head_y =
           (m_shared_scene->head_y)*m_scale_y + m_offset_y*480;
-
-      if(lockmax) return b;
-      if((m_shared_scene->detection_user.X1 > 1000)||
-         (m_shared_scene->detection_user.Y1 > 1000))
-      {
-        m_shared_scene->detection_user_max.X1=std::numeric_limits<float>::max();
-        m_shared_scene->detection_user_max.Y1=std::numeric_limits<float>::max();
-        m_shared_scene->detection_user_max.X2=std::numeric_limits<float>::min();
-        m_shared_scene->detection_user_max.Y2=std::numeric_limits<float>::min();
-        m_shared_scene->detection_user_max.Z1=std::numeric_limits<float>::max();
-        m_shared_scene->detection_user_max.Z2=std::numeric_limits<float>::min();
-      }
-      else
-      {
-        m_shared_scene->detection_user_max.X1 = min(
-              m_shared_scene->detection_user_max.X1,
-              m_shared_scene->detection_user.X1);
-        m_shared_scene->detection_user_max.X2 = max(
-              m_shared_scene->detection_user_max.X2,
-              m_shared_scene->detection_user.X2);
-        m_shared_scene->detection_user_max.Y1 = min(
-              m_shared_scene->detection_user_max.Y1,
-              m_shared_scene->detection_user.Y1);
-        m_shared_scene->detection_user_max.Y2 = max(
-              m_shared_scene->detection_user_max.Y2,
-              m_shared_scene->detection_user.Y2);
-        m_shared_scene->detection_user_max.Z1 = min(
-              m_shared_scene->detection_user_max.Z1,
-              m_shared_scene->detection_user.Z1);
-        m_shared_scene->detection_user_max.Z2 = max(
-              m_shared_scene->detection_user_max.Z2,
-              m_shared_scene->detection_user.Z2);
-      }
 
       return b;
 }
@@ -721,9 +598,13 @@ void ZCamProcessing::set_background_depth(float zdebug)
     m_background_depth = new short[sizeof(short)*640*480];
     m_out_data.background_depth = m_background_depth;
   }
-  memcpy(m_background_depth, m_out_data.depth_data, sizeof(short)*640*480);
+  //memcpy(m_background_depth, m_out_data.depth_data, sizeof(short)*640*480);
+  for(i=0;i<640*480;i++)
+  {
+      m_background_depth[i] = min(m_background_depth[i], m_out_data.depth_data[i]-1);
+  }
   i=1;
-  int firsti=0;
+  /*int firsti=0;
   while(i<640*480)
   {
     if(m_background_depth[i]>8000)
@@ -745,10 +626,11 @@ void ZCamProcessing::set_background_depth(float zdebug)
       firsti=i;
     }
     i++;
-  }
+  }*/
   for(i=0;i<640*480;i++)
   {
-    m_background_depth[i]*=MULTIPLY_FACTOR;
+    //m_background_depth[i]*=MULTIPLY_FACTOR;
+      //m_background_depth[i]*=MULTIPLY_FACTOR;
   }
 
   for(int k=0;k<10;k++)
@@ -756,7 +638,7 @@ void ZCamProcessing::set_background_depth(float zdebug)
     for(i=641;i<640*480-641;i++)
     {
       short v = m_background_depth[i];
-      v=min(
+      /*v=min(
             min(
               min(v,m_background_depth[i-641]),
               min(m_background_depth[i-640], m_background_depth[i-639])),
@@ -764,7 +646,7 @@ void ZCamProcessing::set_background_depth(float zdebug)
               min(m_background_depth[i-1], m_background_depth[i+1]),
               min(m_background_depth[i+639], m_background_depth[i+640])
               ));
-      v=min(v,m_background_depth[i+641]);
+      v=min(v,m_background_depth[i+641]);*/
       buf[i] = v;
     }
     memcpy(m_background_depth,buf,640*480*sizeof(short));

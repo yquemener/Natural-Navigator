@@ -52,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		connect(ui->sld_z_near, SIGNAL(valueChanged(int)), this, SLOT(on_sld_z_near_valueChanged(int)));
 		//connect(m_gl, SIGNAL(mouse))
     m_clock.start(10.2);
+    m_timer.start();
 
 		// Load settings
 
@@ -120,7 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
     m_gl_top_view.set_shared_data(m_pSharedData);
     m_gl_top_view.m_global_rot_x=-13;
     m_gl_top_view.m_global_rot_y=54;
-    m_gl_top_view.m_viewer_distance=-100;
+    m_gl_top_view.m_viewer_distance=-150;
     m_gl_top_view.m_perspective=true;
     m_gl_top_view.m_dots_visible=true;
     m_gl_top_view.m_background_video_type = VIDEO_TYPE_NONE;
@@ -129,6 +130,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		m_z_far=180;
     on_sld_z_far_valueChanged(ui->sld_z_far->value());
     on_sld_z_near_valueChanged(ui->sld_z_near->value());
+    on_but_view_reset_3_clicked();
 }
 
 
@@ -164,7 +166,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_refreshVideo()
 {
-  int i;
+    int i;
+    static int video_count = 0;
+    video_count++;
 	// Polls different settings
 
 	m_gl.m_background_video_type = VIDEO_TYPE_NONE;
@@ -177,46 +181,49 @@ void MainWindow::on_refreshVideo()
 	if(ui->rad_none->isChecked())
 		m_gl.m_background_video_type = VIDEO_TYPE_NONE;
 
-  m_gl_top_view.m_dots_visible = ui->chk_dots_visible->isChecked();
-  m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
-  m_gl.m_boxes_visible = ui->chk_boxes->isChecked();
-  m_gl_top_view.m_boxes_visible = ui->chk_boxes->isChecked();
+    m_gl_top_view.m_dots_visible = ui->chk_dots_visible->isChecked();
+    m_proc.m_points_rgb = ui->chk_dots_color->isChecked();
+    m_gl.m_boxes_visible = ui->chk_boxes->isChecked();
+    m_gl_top_view.m_boxes_visible = ui->chk_boxes->isChecked();
 
-	// Processing
+    // Processing
 
-  QTime t = QTime::currentTime();
-  std::vector<blob> bres;
-  m_proc.update();
-  m_proc.process_boxes(m_pSharedData->user_boxes, true);
+    std::vector<blob> bres;
+    if (m_proc.update()!=0) return;
+    m_proc.process_boxes(m_pSharedData->user_boxes, true);
 
-  for(i=0;i<m_pSharedData->user_boxes.size();i++)
-  {
-    if(m_pSharedData->user_boxes[i].state !=
-       m_pSharedData->user_boxes[i].last_state)
+    for(i=0;i<m_pSharedData->user_boxes.size();i++)
     {
-      QString msg=QString::number(m_pSharedData->user_boxes[i].udp_code);
-      msg+=" ";
-      if(m_pSharedData->user_boxes[i].state!=0)
-        msg+=QString::number(m_pSharedData->user_boxes[i].state);
-      else
-        msg+="0";
-      //send_max_command(msg);
-      m_pSharedData->user_boxes[i].last_state = m_pSharedData->user_boxes[i].state;
+        if(m_pSharedData->user_boxes[i].state !=
+           m_pSharedData->user_boxes[i].last_state)
+        {
+            QString msg=QString::number(m_pSharedData->user_boxes[i].udp_code);
+            msg+=" ";
+            if(m_pSharedData->user_boxes[i].state!=0)
+                msg+=QString::number(m_pSharedData->user_boxes[i].state);
+            else
+                msg+="0";
+            //send_max_command(msg);
+            m_pSharedData->user_boxes[i].last_state = m_pSharedData->user_boxes[i].state;
+        }
     }
-  }
 
 
-  //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 250, 370, 190, 290);
-  //blob b = m_gl.m_proc.process_grab_area(m_z_near, m_z_far, 0,640,0,480);
-  //blob b;
-  blob b = m_proc.process_user_volume(m_z_near, m_z_far, 0, 640, 0, 480, ui->but_lock_boxes->isChecked());
-  m_gl.m_blobs.clear();
-  m_gl.m_blobs.push_back(b.tip_x);
-  m_gl.m_blobs.push_back(b.tip_y);
-  m_gl.m_blobs.push_back(b.x1);
-  m_gl.m_blobs.push_back(b.y1);
-  m_gl.m_blobs.push_back(b.x2);
-  m_gl.m_blobs.push_back(b.y2);
+    blob b = m_proc.process_user_volume(m_z_near, m_z_far, 320, 640, 0, 480, ui->but_lock_boxes->isChecked());
+    if(m_pSharedData->detection_user.state!=0)
+    {
+        float cx = (m_pSharedData->detection_user.X1 + m_pSharedData->detection_user.X2)/2.0;
+        float cy = (m_pSharedData->detection_user.Y1 + m_pSharedData->detection_user.Y2)/2.0;
+        float cz = (m_pSharedData->detection_user.Z1 + m_pSharedData->detection_user.Z2)/2.0;
+        //m_pSharedData->trajectory.push_back(SharedStruct::P3D(cx,cy,cz));
+    }
+    m_gl.m_blobs.clear();
+    m_gl.m_blobs.push_back(b.tip_x);
+    m_gl.m_blobs.push_back(b.tip_y);
+    m_gl.m_blobs.push_back(b.x1);
+    m_gl.m_blobs.push_back(b.y1);
+    m_gl.m_blobs.push_back(b.x2);
+    m_gl.m_blobs.push_back(b.y2);
 
 	QString s = QString("Biggest blob :\n")+
 							"CX :"+QString::number(b.cx)+"\n"+
@@ -227,273 +234,37 @@ void MainWindow::on_refreshVideo()
 
   //qDebug("%d %f %f %d", bres.size(), bres[bres.size()-1].cx, bres[bres.size()-1].cy, bres[bres.size()-1].x1);
 
-
-  if(!ui->but_lock_boxes->isChecked())
-  {
-  /** Make 5 navigator boxes accordingly :
-    * 0 : go forward, according to the tip's direction
-    * 1,2,3,4 : respectively strafe left, right, up and down
-    */
-    SharedStruct::box forwardb;
-    m_pSharedData->nav_boxes[0].behavior = SharedStruct::SIMPLE_BOX;
-    float dX =
-        m_pSharedData->detection_user_max.X2-m_pSharedData->detection_user_max.X1;
-    float dY =
-        m_pSharedData->detection_user_max.Y2-m_pSharedData->detection_user_max.Y1;
-    float dZ =
-        m_pSharedData->detection_user_max.Z2 - m_pSharedData->detection_user_max.Z1;
-    m_pSharedData->nav_boxes[0].Z2 =
-         m_pSharedData->detection_user_max.Z2 - 0.66*dZ;
-    m_pSharedData->nav_boxes[0].Z1 =
-         m_pSharedData->detection_user_max.Z2 - 0.83*dZ;
-    m_pSharedData->nav_boxes[0].X1 = dX*0.16+m_pSharedData->detection_user_max.X1;
-    m_pSharedData->nav_boxes[0].X2 = dX*0.84+m_pSharedData->detection_user_max.X1;
-    m_pSharedData->nav_boxes[0].Y1 = dY*0.38+m_pSharedData->detection_user_max.Y1;
-    m_pSharedData->nav_boxes[0].Y2 = dY*0.84+m_pSharedData->detection_user_max.Y1;
-    forwardb = m_pSharedData->nav_boxes[0];
-
-    SharedStruct::box newb; // Left strafe
-    newb.behavior = SharedStruct::SIMPLE_BOX;
-    newb.Z1 = forwardb.Z2;
-    newb.Z2 = m_pSharedData->detection_user_max.Z2;
-    newb.X1 = m_pSharedData->detection_user_max.X1;
-    newb.X2 = forwardb.X1;
-    newb.Y1 = m_pSharedData->detection_user_max.Y1;
-    newb.Y2 = m_pSharedData->detection_user_max.Y2;
-    newb.xs = m_pSharedData->nav_boxes[1].xs;
-    newb.ys = m_pSharedData->nav_boxes[1].ys;
-    newb.zs = m_pSharedData->nav_boxes[1].zs;
-    newb.last_state = m_pSharedData->nav_boxes[1].last_state;
-    m_pSharedData->nav_boxes[1] = newb;
-    // Right strafe
-    newb.X1 = forwardb.X2;
-    newb.X2 = m_pSharedData->detection_user_max.X2;
-    newb.xs = m_pSharedData->nav_boxes[2].xs;
-    newb.ys = m_pSharedData->nav_boxes[2].ys;
-    newb.zs = m_pSharedData->nav_boxes[2].zs;
-    newb.last_state = m_pSharedData->nav_boxes[2].last_state;
-    m_pSharedData->nav_boxes[2] = newb;
-    // up strafe
-    newb.X1 = m_pSharedData->detection_user_max.X1;
-    newb.X2 = m_pSharedData->detection_user_max.X2;
-    newb.Y1 = m_pSharedData->detection_user_max.Y1;
-    newb.Y2 = dY*0.16+m_pSharedData->detection_user_max.Y1;;
-    newb.xs = m_pSharedData->nav_boxes[3].xs;
-    newb.ys = m_pSharedData->nav_boxes[3].ys;
-    newb.zs = m_pSharedData->nav_boxes[3].zs;
-    newb.last_state = m_pSharedData->nav_boxes[3].last_state;
-    m_pSharedData->nav_boxes[3] = newb;
-    // down strafe
-    newb.Z1 = m_pSharedData->detection_user_max.Z1;
-    newb.Z2 = forwardb.Z2;
-    newb.Y1 = forwardb.Y2;
-    newb.Y2 = m_pSharedData->detection_user_max.Y2;
-    newb.xs = m_pSharedData->nav_boxes[4].xs;
-    newb.ys = m_pSharedData->nav_boxes[4].ys;
-    newb.zs = m_pSharedData->nav_boxes[4].zs;
-    newb.last_state = m_pSharedData->nav_boxes[4].last_state;
-    m_pSharedData->nav_boxes[4] = newb;
-    // forward
-    forwardb.Z2=forwardb.Z1;
-    forwardb.Z1=m_pSharedData->detection_user_max.Z1;
-    forwardb.last_state = m_pSharedData->nav_boxes[5].last_state;
-    m_pSharedData->nav_boxes[5] = forwardb;
-    //backward
-    forwardb.X1 = m_pSharedData->detection_user_max.X1;
-    forwardb.Y1 = m_pSharedData->detection_user_max.Y1;
-    forwardb.X2 = m_pSharedData->detection_user_max.X2;
-    forwardb.Y2 = m_pSharedData->detection_user_max.Y2;
-    forwardb.Z2 = m_pSharedData->detection_user_max.Z2;
-    forwardb.Z1 = m_pSharedData->detection_user_max.Z2-0.12*dZ;
-    forwardb.last_state = m_pSharedData->nav_boxes[6].last_state;
-    m_pSharedData->nav_boxes[6] = forwardb;
-
-  }
-
-  m_proc.process_boxes(m_pSharedData->nav_boxes, false);
-	// Copying ZCamProcessing results into the GLWidget
-  //m_gl.m_blobs.clear();
-  for(i=0;i<bres.size();i++)
-	{
-		m_gl.m_blobs.push_back(bres[i].cx);
-		m_gl.m_blobs.push_back(bres[i].cy);
-		m_gl.m_blobs.push_back(bres[i].x1);
-		m_gl.m_blobs.push_back(bres[i].y1);
-		m_gl.m_blobs.push_back(bres[i].x2);
-		m_gl.m_blobs.push_back(bres[i].y2);
-		//qDebug("%f %f", bres[i].cx, bres[i].cy);
-	}
-	if(!ui->but_deactivate_display->isChecked())
-	{
-    m_gl.makeCurrent();
-    m_gl.loadVideoTexture(m_proc.get_data().rgb_data);
-    m_gl.loadDebugTexture(m_proc.get_data().dbg_data);
-    m_gl.loadDepthTexture(m_proc.get_data().depth_data);
-    m_gl.repaint();
-
-    m_gl_top_view.makeCurrent();
-    /*m_gl_top_view.loadVideoTexture(m_proc.get_data().rgb_data);
-    m_gl_top_view.loadDebugTexture(m_proc.get_data().dbg_data);
-    m_gl_top_view.loadDepthTexture(m_proc.get_data().depth_data);*/
-    m_gl_top_view.repaint();
-	}
-
-  // Sends UDP messages
-
-  // roll
-  bool rolling=false;
-  {
-    SharedStruct::box b1,b2;
-    b1 = m_pSharedData->nav_boxes[1];
-    b2 = m_pSharedData->nav_boxes[2];
-    if((b1.state!=0)&&(b2.state!=0))
+/*  for(i=0;i<bres.size();i++)
     {
-      float dx = abs(b1.xs-b2.xs);
-      float dy = (b1.ys - b2.ys); // invert here to invert the value of the roll
-      float alpha = atan2(dy,dx);
-      if(alpha==alpha)            // checking for NaN
-      {
-        QString cmd;
-        if(alpha>0)
-          cmd = "100 ";
-        else
-          cmd = "97 ";
-        if(!rolling)
-        {
-          //this->send_max_command("44 0");
-          //this->send_max_command("46 0");
-        }
-        rolling=true;
-        cmd+=QString::number(fabs(alpha*2.0/M_PI), 'f',2);
-        //send_max_command(cmd);
-      }
-    }
-    if((b1.state==0)&&(b2.state==0))
+        m_gl.m_blobs.push_back(bres[i].cx);
+        m_gl.m_blobs.push_back(bres[i].cy);
+        m_gl.m_blobs.push_back(bres[i].x1);
+        m_gl.m_blobs.push_back(bres[i].y1);
+        m_gl.m_blobs.push_back(bres[i].x2);
+        m_gl.m_blobs.push_back(bres[i].y2);
+    }*/
+    if(!ui->but_deactivate_display->isChecked())
     {
-      rolling=false;
-      if((b1.last_state!=0)||(b2.last_state!=0))
-      {
-        //this->send_max_command("100 0");
-        //this->send_max_command("97 0");
-      }
+        m_gl.makeCurrent();
+        m_gl.loadVideoTexture(m_proc.get_data().rgb_data);
+        m_gl.loadDebugTexture(m_proc.get_data().dbg_data);
+        m_gl.loadDepthTexture(m_proc.get_data().depth_data);
+        m_gl.repaint();
+
+        m_gl_top_view.makeCurrent();
+        m_gl_top_view.repaint();
     }
-  }
-
-  // strafe left
-  if(m_pSharedData->nav_boxes[1].state!=m_pSharedData->nav_boxes[1].last_state)
-  {
-    QString v;
-    if((m_pSharedData->nav_boxes[1].state!=0)&&(!rolling))
-      v="1";
-    else
-      v="0";
-    //this->send_max_command("44 "+v);
-  }
-  //strafe right
-  if(m_pSharedData->nav_boxes[2].state!=m_pSharedData->nav_boxes[2].last_state)
-  {
-    QString v;
-    if((m_pSharedData->nav_boxes[2].state!=0)&&(!rolling))
-      v="1";
-    else
-      v="0";
-    //this->send_max_command("46 "+v);
-  }
-  //strafe up
-  if(m_pSharedData->nav_boxes[3].state!=m_pSharedData->nav_boxes[3].last_state)
-  {
-    QString v;
-    if(m_pSharedData->nav_boxes[3].state!=0)
-      v="1";
-    else
-      v="0";
-    //this->send_max_command("39 "+v);
-  }
-  //strafe down
-  if(m_pSharedData->nav_boxes[4].state!=m_pSharedData->nav_boxes[4].last_state)
-  {
-    QString v;
-    if(m_pSharedData->nav_boxes[4].state!=0)
-      v="1";
-    else
-      v="0";
-    //this->send_max_command("47 "+v);
-  }
-  //forward
-  if(m_pSharedData->nav_boxes[5].state!=m_pSharedData->nav_boxes[5].last_state)
-  {
-    QString v;
-    if(m_pSharedData->nav_boxes[5].state!=0)
-      v="1";
-    else
-      v="0";
-    //this->send_max_command("30 "+v);
-  }
-
-  //backward
-  if(m_pSharedData->nav_boxes[6].state!=m_pSharedData->nav_boxes[6].last_state)
-  {
-    QString v;
-    if(m_pSharedData->nav_boxes[6].state!=0)
-      v="1";
-    else
-      v="0";
-    //this->send_max_command("31 "+v);
-  }
-
-  for(i=0;i<m_pSharedData->nav_boxes.size();i++)
-    m_pSharedData->nav_boxes[i].last_state=m_pSharedData->nav_boxes[i].state;
-
-  //turn
-  static bool turn_up=false;
-  static bool turn_down=false;
-  static bool turn_right=false;
-  static bool turn_left=false;
-  bool tu = false;
-  bool td = false;
-  bool tr = false;
-  bool tl = false;
-  QString xval;
-  QString yval;
-  if(m_pSharedData->nav_boxes[0].state!=0)
-  {
-    SharedStruct::box b = m_pSharedData->nav_boxes[0];
-    float centerx = (b.X1+b.X2)/2.0;
-    float centery = (b.Y1+b.Y2)/2.0;
-    float normx = 2.0*fabs((b.xs-centerx)/(b.X1-b.X2));
-    float normy = 2.0*fabs((b.ys-centery)/(b.Y1-b.Y2));
-    xval = QString::number(normx, 'f', 2);
-    yval = QString::number(normy, 'f', 2);
-    if(b.xs>centerx) tr=true; else tl=true;
-    if(b.ys>centery) tu=true; else td=true;
-  }
-  turn_right=tr;
-  turn_up=tu;
-  turn_left=tl;
-  turn_down=td;
-
-  // User presence code
-  {
-    static bool user_was_here=false;
-    bool user_is_here;
-    if(m_pSharedData->detection_user_max.X1>m_pSharedData->detection_user_max.X2)
-      user_is_here=false;
-    else
-      user_is_here=true;
-    if(user_was_here!=user_is_here)
+    if(m_timer_learn.isActive())
     {
-      if(user_is_here)
-      {
-        //send_max_command("40 1");
-      }
-      else
-      {
-        //send_max_command("40 0");
-      }
+        m_proc.set_background_depth(m_z_near);
     }
-    user_was_here=user_is_here;
-  }
-
+    if(video_count == 100)
+    {
+        m_fps = video_count/(m_timer.elapsed()/1000.0);
+        video_count = 0;
+        m_timer.start();
+        qDebug("fps = %f\n", m_fps);
+    }
 }
 
 void MainWindow::on_calib_changed()
@@ -663,7 +434,9 @@ void MainWindow::on_sld_left_margin_valueChanged(int value)
 
 void MainWindow::on_but_background_depth_clicked()
 {
-  m_proc.set_background_depth(m_z_near);
+    m_timer_learn.start(1000);
+    m_timer_learn.setSingleShot(true);
+    //m_proc.set_background_depth(m_z_near);
 }
 
 
