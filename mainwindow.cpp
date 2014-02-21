@@ -16,11 +16,14 @@ Copyright (C) 2011 Yves Quemener, IV-devs, Creartcom
     */
     
 #include "mainwindow.h"
+#include <stdio.h>
 #include "ui_mainwindow.h"
 #include "math.h"
 #include <QTime>
 #include "usleep.h"
 #include <QNetworkInterface>
+#include <cflie/CCrazyflie.h>
+
 
 const int SIZEX = 8;
 const int SIZEY = 4;
@@ -36,24 +39,37 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-
+    m_crRadio = new CCrazyRadio("radio://0/10/250K");
+    if(m_crRadio->startRadio()) {
+      m_cflieCopter = new CCrazyflie(m_crRadio);
+      m_cflieCopter->setThrust(10001);
+      m_cflieCopter->setSendSetpoints(true);
+    }
+    else
+    {
+        printf("Could not open Crazyradio\n");
+        fflush(stdout);
+    }
 	// initialize the shared scene
 	m_pSharedData = new SharedStruct::scene();
 
     ui->setupUi(this);
     ui->layoutForOpenGL->addWidget(&this->m_gl);
     ui->layoutForOpenGL->addWidget(&this->m_gl_top_view);
-		connect(&m_clock, SIGNAL(timeout()), this, SLOT(on_refreshVideo()));
-		connect(ui->sld_offset_x, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
-		connect(ui->sld_offset_y, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
-		connect(ui->sld_scale_x, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
-		connect(ui->sld_scale_y, SIGNAL(valueChanged(int)), this, SLOT(on_calib_changed()));
+        connect(&m_clock, SIGNAL(timeout()), this, SLOT(do_refreshVideo()));
+        connect(ui->sld_offset_x, SIGNAL(valueChanged(int)), this, SLOT(do_calib_changed()));
+        connect(ui->sld_offset_y, SIGNAL(valueChanged(int)), this, SLOT(do_calib_changed()));
+        connect(ui->sld_scale_x, SIGNAL(valueChanged(int)), this, SLOT(do_calib_changed()));
+        connect(ui->sld_scale_y, SIGNAL(valueChanged(int)), this, SLOT(do_calib_changed()));
 		connect(ui->sld_z_far, SIGNAL(valueChanged(int)), this, SLOT(on_sld_z_far_valueChanged(int)));
 		connect(ui->sld_z_near, SIGNAL(valueChanged(int)), this, SLOT(on_sld_z_near_valueChanged(int)));
 		//connect(m_gl, SIGNAL(mouse))
     m_clock.start(10.2);
     m_timer.start();
 
+    m_trajfile.setFileName("trajectories.log");
+    m_trajfile.open(QIODevice::WriteOnly | QIODevice::Text);
+    m_trajstream.setDevice(&m_trajfile);
 		// Load settings
 
     m_settings = new QSettings("IV-devs", "NaturalNavigator");
@@ -63,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
       ui->sld_offset_y->setValue(m_settings->value("calib_offset_y").toInt());
       ui->sld_scale_x->setValue(m_settings->value("calib_scale_x").toInt());
       ui->sld_scale_y->setValue(m_settings->value("calib_scale_y").toInt());
-      on_calib_changed();
+      do_calib_changed();
       ui->sld_z_far->setValue(m_settings->value("calib_far_z").toInt());
       ui->sld_z_near->setValue(m_settings->value("calib_near_z").toInt());
       int size=m_settings->beginReadArray("boxes");
@@ -162,14 +178,24 @@ MainWindow::~MainWindow()
 
     m_settings->sync();
     delete ui;
+    delete m_cflieCopter;
+    delete m_crRadio;
 }
 
-void MainWindow::on_refreshVideo()
+void MainWindow::do_refreshVideo()
 {
     int i;
     static int video_count = 0;
     video_count++;
 	// Polls different settings
+
+    if(m_cflieCopter)
+    {
+        m_cflieCopter->setThrust(40000);
+        for(int i=0;i<10;i++)
+            m_cflieCopter->cycle();
+        printf("Cycled %d\n", video_count);
+    }
 
 	m_gl.m_background_video_type = VIDEO_TYPE_NONE;
 	if(ui->rad_depth->isChecked())
@@ -215,7 +241,16 @@ void MainWindow::on_refreshVideo()
         float cx = (m_pSharedData->detection_user.X1 + m_pSharedData->detection_user.X2)/2.0;
         float cy = (m_pSharedData->detection_user.Y1 + m_pSharedData->detection_user.Y2)/2.0;
         float cz = (m_pSharedData->detection_user.Z1 + m_pSharedData->detection_user.Z2)/2.0;
+        float sx = fabs(m_pSharedData->detection_user.X1 - m_pSharedData->detection_user.X2);
+        float sy = fabs(m_pSharedData->detection_user.Y1 - m_pSharedData->detection_user.Y2);
+        float sz = fabs(m_pSharedData->detection_user.Z1 - m_pSharedData->detection_user.Z2);
         m_pSharedData->trajectory.push_back(SharedStruct::P3D(cx,cy,cz));
+        m_trajstream << cx << "\t";
+        m_trajstream << cy << "\t";
+        m_trajstream << cz << "\t";
+        m_trajstream << sx << "\t";
+        m_trajstream << sy << "\t";
+        m_trajstream << sz << "\n";
     }
     m_gl.m_blobs.clear();
     m_gl.m_blobs.push_back(b.tip_x);
@@ -267,7 +302,7 @@ void MainWindow::on_refreshVideo()
     }
 }
 
-void MainWindow::on_calib_changed()
+void MainWindow::do_calib_changed()
 {
 	float sx = normalized_slider(ui->sld_scale_x);
 	float sy = normalized_slider(ui->sld_scale_y);
@@ -308,17 +343,6 @@ void MainWindow::on_sld_z_far_valueChanged(int value)
 	m_z_far=ui->sld_z_far->value() - ui->sld_z_near->value();
 }
 
-void MainWindow::on_rad_ortho_clicked()
-{
-		m_gl.m_perspective = false;
-		m_gl.resizeGL(m_gl.size().width(), m_gl.size().height());
-}
-
-void MainWindow::on_rad_perspective_clicked()
-{
-		m_gl.m_perspective = true;
-		m_gl.resizeGL(m_gl.size().width(), m_gl.size().height());
-}
 
 void MainWindow::on_chk_boxes_clicked()
 {
@@ -367,10 +391,6 @@ void MainWindow::on_sld_z_near_sliderMoved(int position)
 
 }
 
-void MainWindow::on_grab_threshold_valueChanged(int value)
-{
-}
-
 
 void MainWindow::on_pushButton_clicked()
 {
@@ -400,15 +420,6 @@ void MainWindow::on_but_deactivate_display_clicked()
 
 }
 
-void MainWindow::on_sld_depth_boxes_actionTriggered(int action)
-{
-
-}
-
-void MainWindow::on_sld_depth_boxes_sliderMoved(int position)
-{
-
-}
 
 void MainWindow::on_ui_visible_clicked()
 {
@@ -420,16 +431,6 @@ void MainWindow::on_ui_visible_clicked()
 	{
 		ui->tabs_tools->hide();
 	}
-}
-
-void MainWindow::on_sld_right_margin_valueChanged(int value)
-{
-    m_pSharedData->user_boxes[1].X2 = 100-value;
-}
-
-void MainWindow::on_sld_left_margin_valueChanged(int value)
-{
-    m_pSharedData->user_boxes[0].X1 = value;
 }
 
 void MainWindow::on_but_background_depth_clicked()
@@ -525,4 +526,16 @@ void MainWindow::on_but_reset_boxes_clicked()
   m_pSharedData->detection_user_max.Y2=std::numeric_limits<float>::min();
   m_pSharedData->detection_user_max.Z1=std::numeric_limits<float>::max();
   m_pSharedData->detection_user_max.Z2=std::numeric_limits<float>::min();
+}
+
+void MainWindow::on_but_record_trajectory_toggled(bool checked)
+{
+    if(checked)
+    {
+        m_trajfile.open(QIODevice::WriteOnly | QIODevice::Text);
+    }
+    else
+    {
+        m_trajfile.close();
+    }
 }

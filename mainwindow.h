@@ -23,10 +23,12 @@ Copyright (C) 2011 Yves Quemener, IV-devs, Creartcom
 #include "display/glwidget.h"
 #include <QTimer>
 #include <QTime>
+#include <QFile>
 #include <QSettings>
 #include "shareddata.h"
 #include <QUdpSocket>
 #include <limits>
+#include <cflie/CCrazyflie.h>
 
 
 namespace Ui {
@@ -54,16 +56,17 @@ private:
     float m_z_near, m_z_far;
     float m_fps;
 
+    QFile m_trajfile;
+    QTextStream m_trajstream;
 
     SharedStruct::scene * m_pSharedData;
 
+    CCrazyRadio * m_crRadio;
+    CCrazyflie * m_cflieCopter;
+
 
 private slots:
-    void on_sld_left_margin_valueChanged(int value);
-    void on_sld_right_margin_valueChanged(int value);
     void on_ui_visible_clicked();
-    void on_sld_depth_boxes_sliderMoved(int position);
-    void on_sld_depth_boxes_actionTriggered(int action);
     void on_but_deactivate_display_clicked();
     void on_lst_boxes_currentRowChanged(int currentRow);
     void on_pushButton_clicked();
@@ -71,13 +74,10 @@ private slots:
     void on_lst_boxes_itemSelectionChanged();
     void on_but_add_clicked();
     void on_chk_boxes_clicked();
-    void on_rad_perspective_clicked();
-    void on_rad_ortho_clicked();
-    void on_grab_threshold_valueChanged(int value);
     void on_sld_z_far_valueChanged(int value);
     void on_sld_z_near_valueChanged(int value);
-    void on_refreshVideo();
-    void on_calib_changed();
+    void do_refreshVideo();
+    void do_calib_changed();
     void on_but_background_depth_clicked();
     void on_but_view_reset_clicked();
     void on_but_reset_background_depth_clicked();
@@ -85,6 +85,7 @@ private slots:
     void on_but_view_reset_3_clicked();
     void on_but_view_reset_4_clicked();
     void on_but_reset_boxes_clicked();
+    void on_but_record_trajectory_toggled(bool checked);
 };
 
 

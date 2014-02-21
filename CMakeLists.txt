@@ -17,6 +17,7 @@ include_directories(${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS} ${USB_INCLUDE_DI
 #include_directories (../OpenKinect-libfreenect-3b0f416/include/)
 include_directories (/opt/local/var/macports/software/libusb-devel/1.0.8.20101017_1/opt/local/include/) 
 include_directories (/usr/local/include/libfreenect)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/../libcflie/include)
 
 
 #link_directories(/usr/local/lib64/)
@@ -24,6 +25,7 @@ include_directories (/usr/local/include/libfreenect)
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/libs)
 
 link_directories(/usr/local/lib/)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libcflie/lib/)
 link_directories(/usr/local/lib64/)
 
 
@@ -70,5 +72,6 @@ target_link_libraries (NaturalNavigator
 	${QT_QTGL_LIBRARIES}
 	${OPENGL_LIBRARIES}
 	${CMAKE_THREAD_LIBS_INIT}
+	cflie
 	m
 	)

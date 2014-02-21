@@ -263,7 +263,6 @@ void GLWidget::paintGL()
     {
         glPushMatrix();
         glScalef(-1,1,1);
-        printf("Trajec size:%d\n", m_shared_scene->trajectory.size());
         for(int i=0;i<m_shared_scene->trajectory.size();i++)
         {
             SharedStruct::P3D p = m_shared_scene->trajectory[i];
