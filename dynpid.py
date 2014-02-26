@@ -95,25 +95,25 @@ class Controller:
 
   def update_position(self, x,y,z,sx,sy,sz):
     self.pos = (x,y,z)
-    print self.calib_thrust, x, y, z
+    
     if(self.sequence == "start"):
       self.sequence = "track"
       print "Start tracking"
       # Pure P:
       #self.pid_thrust = PID(z,self.target[2], -250, 0, 0, neutral = self.cmd_thrust) 
       self.calib_thrust = self.cmd_thrust
-      self.pid_thrust = PID(z,self.target[2], -145, -60, 0, neutral = self.cmd_thrust, debug=True) 
+      self.pid_thrust = PID(z,self.target[2], -4, -2, 0, neutral = 0, debug=True) 
       self.pid_pitch = PID(y,y, 0.02, 0.00, 0, neutral = self.calib_pitch) 
       self.pid_roll = PID(x,x, -0.02, -0.00, 0, neutral=self.calib_roll, debug=False) 
       self.lasttime = time() 
     if self.sequence == "track":
       dt = time() - self.lasttime
-      self.cmd_thrust = max(min(self.pid_thrust.update(z,dt),50000), 0)
+      self.cmd_thrust =  max(min(self.cmd_thrust + self.pid_thrust.update(z,dt),50000), 0)
       #self.cmd_pitch = self.calib_pitch
       #self.cmd_roll = self.calib_roll
       self.cmd_pitch = self.pid_pitch.update(y,dt)
       self.cmd_roll = self.pid_roll.update(x,dt)
-      
+      print self.cmd_thrust, x, y, z  
       #print self.sequence, self.cmd_roll, self.cmd_pitch, self.cmd_yawrate, int(self.cmd_thrust)
     self.lasttime = time() 
 
