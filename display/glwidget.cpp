@@ -315,7 +315,7 @@ void GLWidget::resizeGL(int width, int height)
     }
     glViewport(0,0, width, height);
     glMatrixMode( GL_MODELVIEW );
-    qDebug("%d", this->width());
+    //qDebug("%d", this->width());
 }
 
 void GLWidget::loadVideoTexture(unsigned char *data)

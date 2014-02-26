@@ -64,15 +64,13 @@ private:
     CCrazyRadio * m_crRadio;
     CCrazyflie * m_cflieCopter;
 
+    int m_maxblobsize;
 
 private slots:
     void on_ui_visible_clicked();
     void on_but_deactivate_display_clicked();
-    void on_lst_boxes_currentRowChanged(int currentRow);
-    void on_pushButton_clicked();
     void on_sld_z_near_sliderMoved(int position);
     void on_lst_boxes_itemSelectionChanged();
-    void on_but_add_clicked();
     void on_chk_boxes_clicked();
     void on_sld_z_far_valueChanged(int value);
     void on_sld_z_near_valueChanged(int value);
@@ -86,6 +84,9 @@ private slots:
     void on_but_view_reset_4_clicked();
     void on_but_reset_boxes_clicked();
     void on_but_record_trajectory_toggled(bool checked);
+    void on_but_cflie_stop_clicked();
+    void on_but_cflie_start1_clicked();
+    void on_sld_blobsize_valueChanged(int value);
 };
 
 

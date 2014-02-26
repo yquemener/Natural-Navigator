@@ -340,7 +340,8 @@ void ZCamProcessing::process_boxes(std::vector<SharedStruct::box> &boxes,
 
 blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
                                        const float x1, const float x2,
-                                       const float y1, const float y2, bool lockmax)
+                                       const float y1, const float y2, bool lockmax,
+                                         int maxblobsize)
 {
       std::vector<blob> results;
       blob b;
@@ -361,10 +362,10 @@ blob ZCamProcessing::process_user_volume(const float z_near, const float z_far,
       b.perimeter=0;
       m_shared_scene->detection_user.state = 0;
 
-      // Consider all blobs bigger than 100 pixels to be part of the copter
+      // Consider all blobs bigger than maxblobsize pixels to be part of the copter
       for(int i=0;i<results.size();i++)
       {
-        if(results[i].area>20)
+        if(results[i].area>maxblobsize)
         {
           b.x1=min(b.x1, results[i].x1);
           if(b.y1 > results[i].y1)

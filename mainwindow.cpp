@@ -39,17 +39,16 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    m_crRadio = new CCrazyRadio("radio://0/10/250K");
+    /*m_crRadio = new CCrazyRadio("radio://0/10/250K");
     if(m_crRadio->startRadio()) {
       m_cflieCopter = new CCrazyflie(m_crRadio);
-      m_cflieCopter->setThrust(10001);
-      m_cflieCopter->setSendSetpoints(true);
     }
     else
     {
+        m_cflieCopter = 0;
         printf("Could not open Crazyradio\n");
         fflush(stdout);
-    }
+    }*/
 	// initialize the shared scene
 	m_pSharedData = new SharedStruct::scene();
 
@@ -107,14 +106,6 @@ MainWindow::MainWindow(QWidget *parent) :
         b.udp_code = udp_code;
         //b.behavior = SharedStruct::HORIZONTAL_SLIDER;
         m_pSharedData->user_boxes.push_back(b);
-        ui->lst_boxes->addItem(QString("Box : (")	+
-                               QString::number(x)+","+
-                               QString::number(y)+","+
-                               QString::number(z)+","+
-                               QString::number(width)+","+
-                               QString::number(height)+","+
-                               QString::number(depth)+", code:"+
-                               QString::number(udp_code)+")");
       }
       m_settings->endArray();
     }
@@ -146,6 +137,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		m_z_far=180;
     on_sld_z_far_valueChanged(ui->sld_z_far->value());
     on_sld_z_near_valueChanged(ui->sld_z_near->value());
+    on_sld_blobsize_valueChanged(ui->sld_blobsize->value());
     on_but_view_reset_3_clicked();
 }
 
@@ -178,7 +170,7 @@ MainWindow::~MainWindow()
 
     m_settings->sync();
     delete ui;
-    delete m_cflieCopter;
+    //delete m_cflieCopter;
     delete m_crRadio;
 }
 
@@ -189,13 +181,24 @@ void MainWindow::do_refreshVideo()
     video_count++;
 	// Polls different settings
 
-    if(m_cflieCopter)
+    /*if(m_cflieCopter)
     {
-        m_cflieCopter->setThrust(40000);
-        for(int i=0;i<10;i++)
+
+
+        for(int i=0;i<1;i++)
             m_cflieCopter->cycle();
-        printf("Cycled %d\n", video_count);
-    }
+        ui->log_cflie->append("Cycled " + QString::number(video_count)+"\n");
+        if(m_cflieCopter->isInitialized())
+        {
+            ui->log_cflie->append("Initialized\n");
+            m_cflieCopter->setThrust(40000+video_count);
+            m_cflieCopter->setSendSetpoints(true);
+        }
+        else
+        {
+            ui->log_cflie->append("Not initialized\n");
+        }
+    }*/
 
 	m_gl.m_background_video_type = VIDEO_TYPE_NONE;
 	if(ui->rad_depth->isChecked())
@@ -235,7 +238,7 @@ void MainWindow::do_refreshVideo()
     }
 
 
-    blob b = m_proc.process_user_volume(m_z_near, m_z_far, 320, 640, 0, 480, ui->but_lock_boxes->isChecked());
+    blob b = m_proc.process_user_volume(m_z_near, m_z_far, 0, 640, 0, 480, ui->but_lock_boxes->isChecked(), m_maxblobsize);
     if((m_pSharedData->detection_user.state!=0)&&(ui->but_record_trajectory->isChecked()))
     {
         float cx = (m_pSharedData->detection_user.X1 + m_pSharedData->detection_user.X2)/2.0;
@@ -245,12 +248,21 @@ void MainWindow::do_refreshVideo()
         float sy = fabs(m_pSharedData->detection_user.Y1 - m_pSharedData->detection_user.Y2);
         float sz = fabs(m_pSharedData->detection_user.Z1 - m_pSharedData->detection_user.Z2);
         m_pSharedData->trajectory.push_back(SharedStruct::P3D(cx,cy,cz));
-        m_trajstream << cx << "\t";
+        /*m_trajstream << cx << "\t";
         m_trajstream << cy << "\t";
         m_trajstream << cz << "\t";
         m_trajstream << sx << "\t";
         m_trajstream << sy << "\t";
-        m_trajstream << sz << "\n";
+        m_trajstream << sz << "\n";*/
+        QString s = QString::number(cx) + "\t"
+                  + QString::number(cy) + "\t"
+                  + QString::number(cz) + "\t";
+        s += QString::number(sx)+"\t"+
+             QString::number(sy)+"\t"+
+             QString::number(sz)+"\n";
+        cout << s.toStdString();
+        cout.flush();
+        ui->log_cflie->append(s + "\n");
     }
     m_gl.m_blobs.clear();
     m_gl.m_blobs.push_back(b.tip_x);
@@ -292,13 +304,14 @@ void MainWindow::do_refreshVideo()
     if(m_timer_learn.isActive())
     {
         m_proc.set_background_depth(m_z_near);
+        ui->log_cflie->append("Learning");
     }
     if(video_count == 100)
     {
         m_fps = video_count/(m_timer.elapsed()/1000.0);
         video_count = 0;
         m_timer.start();
-        qDebug("fps = %f\n", m_fps);
+        //qDebug("fps = %f\n", m_fps);
     }
 }
 
@@ -349,38 +362,6 @@ void MainWindow::on_chk_boxes_clicked()
 		m_gl.m_boxes_visible = ui->chk_boxes->isChecked();
 }
 
-void MainWindow::on_but_add_clicked()
-{
-	float x = ui->edt_box_x->text().toFloat();
-	float y = ui->edt_box_y->text().toFloat();
-	float z = ui->edt_box_z->text().toFloat();
-	float w = ui->edt_box_width->text().toFloat();
-	float h = ui->edt_box_height->text().toFloat();
-	float d = ui->edt_box_depth->text().toFloat();
-
-	//m_gl.add_box(x,y,z,w,h,d);
-	SharedStruct::box m;
-	m.X1 = x;
-	m.X2 = x + w;
-	m.Y1 = y;
-	m.Y2 = y + h;
-	m.Z1 = z;
-	m.Z2 = z + d;
-	m.state = 0;
-  m.behavior = (SharedStruct::behavior_t)ui->cmb_box_type->currentIndex();
-  m.udp_code = ui->edt_box_udp_code->text().toInt();
-  m_pSharedData->user_boxes.push_back(m);
-
-	ui->lst_boxes->addItem(QString("Box : (")	+
-												 QString::number(x)+","+
-												 QString::number(y)+","+
-												 QString::number(z)+","+
-												 QString::number(w)+","+
-                         QString::number(h)+","+
-                         QString::number(d)+", code:"+
-                         QString::number(m.udp_code)+")");
-}
-
 void MainWindow::on_lst_boxes_itemSelectionChanged()
 {
 
@@ -391,29 +372,6 @@ void MainWindow::on_sld_z_near_sliderMoved(int position)
 
 }
 
-
-void MainWindow::on_pushButton_clicked()
-{
-    if(ui->lst_boxes->selectedItems().count()==0) return;
-		int i = ui->lst_boxes->row(ui->lst_boxes->selectedItems()[0]);
-		ui->lst_boxes->takeItem(i);
-    m_pSharedData->user_boxes.erase(m_pSharedData->user_boxes.begin()+i);
-}
-
-void MainWindow::on_lst_boxes_currentRowChanged(int currentRow)
-{
-  SharedStruct::box m = m_pSharedData->user_boxes[currentRow];
-
-	ui->edt_box_x->setText(QString::number(m.X1));
-	ui->edt_box_y->setText(QString::number(m.Y1));
-	ui->edt_box_z->setText(QString::number(m.Z1));
-  ui->edt_box_width->setText(QString::number(m.X2-m.X1));
-	ui->edt_box_height->setText(QString::number(m.Y2-m.Y1));
-	ui->edt_box_depth->setText(QString::number(m.Z2-m.Z1));
-  ui->edt_box_udp_code->setText(QString::number(m.udp_code));
-  ui->cmb_box_type->setCurrentIndex((int)m.behavior);
-
-}
 
 void MainWindow::on_but_deactivate_display_clicked()
 {
@@ -435,8 +393,10 @@ void MainWindow::on_ui_visible_clicked()
 
 void MainWindow::on_but_background_depth_clicked()
 {
-    m_timer_learn.start(1000);
+    on_but_reset_background_depth_clicked();
+    m_timer_learn.start(3000);
     m_timer_learn.setSingleShot(true);
+    ui->log_cflie->append(QString("Start Learning"));
     //m_proc.set_background_depth(m_z_near);
 }
 
@@ -538,4 +498,22 @@ void MainWindow::on_but_record_trajectory_toggled(bool checked)
     {
         m_trajfile.close();
     }
+}
+
+void MainWindow::on_but_cflie_stop_clicked()
+{
+    ui->but_record_trajectory->setChecked(false);
+    cout << "STOP" << endl;
+}
+
+void MainWindow::on_but_cflie_start1_clicked()
+{
+    ui->but_record_trajectory->setChecked(true);
+    cout << "START" << endl;
+}
+
+void MainWindow::on_sld_blobsize_valueChanged(int value)
+{
+    ui->lbl_blobsize->setText("Blob size: " + QString::number(value));
+    m_maxblobsize=value;
 }
