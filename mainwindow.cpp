@@ -393,8 +393,8 @@ void MainWindow::on_ui_visible_clicked()
 
 void MainWindow::on_but_background_depth_clicked()
 {
-    on_but_reset_background_depth_clicked();
-    m_timer_learn.start(3000);
+    //on_but_reset_background_depth_clicked();
+    m_timer_learn.start(9000);
     m_timer_learn.setSingleShot(true);
     ui->log_cflie->append(QString("Start Learning"));
     //m_proc.set_background_depth(m_z_near);
@@ -509,6 +509,7 @@ void MainWindow::on_but_cflie_stop_clicked()
 void MainWindow::on_but_cflie_start1_clicked()
 {
     ui->but_record_trajectory->setChecked(true);
+    m_pSharedData->trajectory.clear();
     cout << "START" << endl;
 }
 
