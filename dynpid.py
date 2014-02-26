@@ -24,7 +24,7 @@ class PID:
     self.speed = (newpos - self.pos)/dt
     self.pos = newpos
     errorp = self.target - self.pos
-    errori = self.integ + errorp*dt
+    errori = self.integ/(2.0**dt) + errorp*dt # Not really an integral, but values importance get divided by 2 every second
     errord = (self.lasterror - errorp)/dt
     self.lasterror = errorp
     self.integ = errori
@@ -36,7 +36,7 @@ class PID:
 	color = '\033[92m'
       else:
 	color = '\033[94m'
-      print color + str(self.output) , "=", self.Kp,"*", errorp,"+", self.Kd,"*", errord,"+", self.Ki,"*",errori,'\033[0m'
+      print color + str(self.output) , "=", self.Kp,"*", errorp,"+", self.Ki,"*",errori, "+", self.Kd,"*", errord,'\033[0m'
     
     return self.neutral + self.output
 
@@ -45,7 +45,7 @@ class PID:
 
 class Controller:
   def __init__(self, commander):
-    self.target = [413, 215, 190]
+    self.target = [413, 215, 195]
     self.calib_roll = 1.5
     self.calib_pitch = -5.0
     self.calib_thrust = 38000
@@ -102,18 +102,25 @@ class Controller:
       # Pure P:
       #self.pid_thrust = PID(z,self.target[2], -250, 0, 0, neutral = self.cmd_thrust) 
       self.calib_thrust = self.cmd_thrust
-      self.pid_thrust = PID(z,self.target[2], -4, -2, 0, neutral = 0, debug=True) 
+      # numerical delta
+      #self.pid_thrust = PID(z,self.target[2], -5, -2, 0, neutral = 0, debug=True) 
+      # proportional delta
+      ## Pure P = -0.0048
+      ## P,I = -0.0024, -0.0040
+      self.pid_thrust = PID(z,self.target[2], -0.0048, -0.0040, 0.005, neutral = 1.0, debug=True) 
       self.pid_pitch = PID(y,y, 0.02, 0.00, 0, neutral = self.calib_pitch) 
       self.pid_roll = PID(x,x, -0.02, -0.00, 0, neutral=self.calib_roll, debug=False) 
       self.lasttime = time() 
     if self.sequence == "track":
       dt = time() - self.lasttime
-      self.cmd_thrust =  max(min(self.cmd_thrust + self.pid_thrust.update(z,dt),50000), 0)
+      #self.cmd_thrust =  max(min(self.cmd_thrust + self.pid_thrust.update(z,dt),50000), 0)
+      
+      self.cmd_thrust =  max(min(self.calib_thrust * self.pid_thrust.update(z,dt),50000), 0)
       #self.cmd_pitch = self.calib_pitch
       #self.cmd_roll = self.calib_roll
       self.cmd_pitch = self.pid_pitch.update(y,dt)
       self.cmd_roll = self.pid_roll.update(x,dt)
-      print self.cmd_thrust, x, y, z  
+      print self.cmd_thrust, x, y, z, dt*1000.0, "ms"  
       #print self.sequence, self.cmd_roll, self.cmd_pitch, self.cmd_yawrate, int(self.cmd_thrust)
     self.lasttime = time() 
 
